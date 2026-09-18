@@ -129,7 +129,6 @@ export default function Form() {
             />
           </section>
         </div>
-        <p className="mt-4 px-1 text-sm text-ink-400">都可略過，AI 會用預設值幫你排。</p>
       </main>
 
       {/* 底部固定 CTA */}
