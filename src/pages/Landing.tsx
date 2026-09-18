@@ -35,9 +35,14 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        {/* 背景：暖陽光暈 */}
-        <div className="pointer-events-none absolute -top-24 right-8 h-72 w-72 rounded-full bg-sun-300/40 blur-3xl" />
-        <div className="pointer-events-none absolute top-40 -left-16 h-64 w-64 rounded-full bg-ocean-200/40 blur-3xl" />
+        {/* 背景：暖陽光暈(用漸層,避免裁切邊產生割線) */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(130% 55% at 85% -5%, rgba(248,198,117,0.5), transparent 55%), radial-gradient(95% 45% at -5% 22%, rgba(169,208,232,0.4), transparent 55%)',
+          }}
+        />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-6 pt-10 pb-40 text-center sm:pt-16">
           <div className="dz-bob dz-rise">
@@ -63,7 +68,7 @@ export default function Landing() {
 
         {/* 海浪 footer */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0">
-          <svg viewBox="0 0 1440 160" preserveAspectRatio="none" className="h-24 w-full sm:h-32">
+          <svg viewBox="0 0 1440 160" preserveAspectRatio="none" className="block h-24 w-full sm:h-32">
             <path fill="#a9d0e8" fillOpacity="0.55" d="M0,96 C240,40 480,140 720,110 C960,80 1200,20 1440,80 L1440,160 L0,160 Z" />
             <path fill="#1b6fa6" d="M0,120 C260,70 520,150 780,128 C1040,106 1240,70 1440,116 L1440,160 L0,160 Z" />
           </svg>
@@ -71,7 +76,7 @@ export default function Landing() {
       </section>
 
       {/* 怎麼玩 */}
-      <section id="how" className="bg-ocean-600">
+      <section id="how" className="-mt-px bg-ocean-600">
         <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
           <h2 className="text-center text-2xl font-black tracking-tight text-white sm:text-3xl">
             三步驟，玩轉金門
