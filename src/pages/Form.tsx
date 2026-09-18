@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   Camera,
+  ChevronDown,
   Clock,
   Coffee,
   Heart,
@@ -69,6 +70,27 @@ export default function Form() {
   const [companion, setCompanion] = useState('情侶')
   const [experiences, setExperiences] = useState<string[]>(['美食', '文化古蹟'])
   const [note, setNote] = useState('')
+  const [atBottom, setAtBottom] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => {
+      const el = document.scrollingElement || document.documentElement
+      setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 48)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
+  const scrollDown = () =>
+    (document.scrollingElement || document.documentElement).scrollBy({
+      top: window.innerHeight * 0.7,
+      behavior: 'smooth',
+    })
 
   const toggleExp = (e: string) =>
     setExperiences((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]))
@@ -132,14 +154,30 @@ export default function Form() {
       </main>
 
       {/* 底部固定 CTA */}
-      <div className="sticky bottom-0 z-20 border-t border-ink-900/5 bg-paper-50/90 backdrop-blur-md">
-        <div className="mx-auto max-w-2xl px-6 py-4">
+      <div className="sticky bottom-0 z-20 bg-paper-50/90 backdrop-blur-md">
+        {/* 內容淡出,暗示還有內容 */}
+        <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-paper-50 to-transparent" />
+
+        {/* 往下捲提示(手機,未到底時) */}
+        {!atBottom && (
           <button
-            onClick={submit}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brick-600 px-6 py-4 text-lg font-bold text-white shadow-lg shadow-brick-600/25 transition hover:bg-brick-700 active:translate-y-0.5"
+            onClick={scrollDown}
+            aria-label="往下看更多"
+            className="dz-bob absolute -top-14 left-1/2 -ml-5 flex h-10 w-10 items-center justify-center rounded-full bg-white text-brick-600 shadow-md ring-1 ring-ink-900/10 sm:hidden"
           >
-            生成我的路線 <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+            <ChevronDown className="h-5 w-5" strokeWidth={2.5} />
           </button>
+        )}
+
+        <div className="border-t border-ink-900/5">
+          <div className="mx-auto max-w-2xl px-6 py-4">
+            <button
+              onClick={submit}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brick-600 px-6 py-4 text-lg font-bold text-white shadow-lg shadow-brick-600/25 transition hover:bg-brick-700 active:translate-y-0.5"
+            >
+              生成我的路線 <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

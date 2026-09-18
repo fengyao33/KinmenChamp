@@ -1,13 +1,22 @@
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Check, Route, Sparkles } from 'lucide-react'
 import Header from '../components/Header'
 
 export default function Choose() {
   const navigate = useNavigate()
+  const scroller = useRef<HTMLDivElement>(null)
+  const [idx, setIdx] = useState(0)
+
+  const onScroll = () => {
+    const el = scroller.current
+    if (!el) return
+    setIdx(Math.round(el.scrollLeft / el.clientWidth))
+  }
 
   return (
     <div className="flex min-h-full flex-col bg-paper-100">
-      <Header showBack />
+      <Header showBack backTo="/" />
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-12 sm:py-16">
         <div className="text-center">
@@ -17,9 +26,13 @@ export default function Choose() {
           <p className="mt-3 text-ink-500">選一種方式開始</p>
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          {/* 島轉推薦 */}
-          <article className="group flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:-translate-y-1 hover:shadow-xl">
+        <div
+          ref={scroller}
+          onScroll={onScroll}
+          className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible"
+        >
+          {/* 島轉精選 */}
+          <article className="group flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:shadow-xl sm:w-[68%] md:w-auto md:hover:-translate-y-1">
             <div className="relative h-36 overflow-hidden bg-brick-600">
               <svg viewBox="0 0 400 140" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full opacity-90">
                 <path d="M40,110 C120,60 180,120 240,80 C290,48 330,70 370,40" fill="none" stroke="#ffffff" strokeWidth="3" strokeDasharray="2 10" strokeLinecap="round" opacity="0.7" />
@@ -58,7 +71,7 @@ export default function Choose() {
           </article>
 
           {/* AI 客製 */}
-          <article className="group flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:-translate-y-1 hover:shadow-xl">
+          <article className="group flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:shadow-xl sm:w-[68%] md:w-auto md:hover:-translate-y-1">
             <div className="relative h-36 overflow-hidden bg-ocean-600">
               <svg viewBox="0 0 400 140" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
                 {[
@@ -96,6 +109,16 @@ export default function Choose() {
               </button>
             </div>
           </article>
+        </div>
+
+        {/* 分頁圓點(手機) */}
+        <div className="mt-5 flex justify-center gap-2 md:hidden">
+          {[0, 1].map((i) => (
+            <span
+              key={i}
+              className={`h-2 rounded-full transition-all ${idx === i ? 'w-6 bg-brick-600' : 'w-2 bg-paper-300'}`}
+            />
+          ))}
         </div>
       </main>
     </div>

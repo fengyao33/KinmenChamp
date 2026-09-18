@@ -122,6 +122,33 @@ body {
   transform: scale(1.15);
   z-index: 5;
 }
+/* 我的位置(GPS) */
+.dz-me {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--color-ocean-600);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 0 rgba(27, 111, 166, 0.45);
+  animation: dz-pulse 2s ease-out infinite;
+}
+@keyframes dz-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(27, 111, 166, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(27, 111, 166, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(27, 111, 166, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dz-me {
+    animation: none;
+  }
+}
+
 /* POI 小圓點 */
 .dz-poi {
   width: 16px;
@@ -174,6 +201,54 @@ body {
   .dz-spin,
   .dz-rise,
   .dz-bob {
+    animation: none;
+  }
+}
+
+/* 隱藏捲軸(手機分類列橫向捲動用) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 底部抽屜滑入 */
+@keyframes dz-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.dz-slide-up {
+  animation: dz-slide-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 詳情卡:手機從底部滑上、桌面淡入 */
+@keyframes dz-sheet-desktop {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dz-sheet-in {
+  animation: dz-slide-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (min-width: 640px) {
+  .dz-sheet-in {
+    animation: dz-sheet-desktop 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dz-slide-up,
+  .dz-sheet-in {
     animation: none;
   }
 }
