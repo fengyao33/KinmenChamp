@@ -172,9 +172,6 @@ function MobileSheet({
   onSelect,
   snap,
   setSnap,
-  onLocate,
-  locating,
-  located,
 }: {
   isAI: boolean
   totalHours: string
@@ -182,9 +179,6 @@ function MobileSheet({
   onSelect: (s: Stop) => void
   snap: number // 0 收合 / 1 一半 / 2 全開
   setSnap: React.Dispatch<React.SetStateAction<number>>
-  onLocate: () => void
-  locating: boolean
-  located: boolean
 }) {
   const initVh = typeof window !== 'undefined' ? window.innerHeight : 800
   const [tab, setTab] = useState<'route' | 'feed'>('route')
@@ -274,15 +268,6 @@ function MobileSheet({
         transition: animate ? 'transform 0.32s cubic-bezier(0.16,1,0.3,1)' : 'none',
       }}
     >
-      {/* 小飛機定位(吸附在抽屜頂端上方) */}
-      <button
-        onClick={onLocate}
-        className="absolute -top-14 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-ocean-600 shadow-md ring-1 ring-ink-900/10 transition active:scale-95"
-        aria-label="定位我的位置"
-      >
-        <Navigation className={`h-5 w-5 ${locating ? 'animate-pulse' : ''}`} strokeWidth={2} fill={located ? 'currentColor' : 'none'} />
-      </button>
-
       <div className="flex h-full flex-col rounded-t-3xl bg-paper-50 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] ring-1 ring-ink-900/10">
         {/* 拖曳把手 */}
         <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} className="shrink-0 cursor-grab touch-none pt-2 pb-1 active:cursor-grabbing">
@@ -464,10 +449,10 @@ export default function MapPage() {
             {userPos && <Marker position={userPos} icon={meIcon()} />}
           </MapContainer>
 
-          {/* 小飛機定位(桌面:縮放鈕上方) */}
+          {/* 小飛機定位(固定在地圖上,不隨抽屜移動) */}
           <button
             onClick={() => requestLocate(true)}
-            className="absolute bottom-[104px] right-3 z-[500] hidden h-11 w-11 items-center justify-center rounded-full bg-white text-ocean-600 shadow-md ring-1 ring-ink-900/10 transition hover:bg-paper-100 active:scale-95 lg:flex"
+            className="absolute bottom-[150px] right-3 z-[500] flex h-11 w-11 items-center justify-center rounded-full bg-white text-ocean-600 shadow-md ring-1 ring-ink-900/10 transition hover:bg-paper-100 active:scale-95 lg:bottom-[104px]"
             aria-label="定位我的位置"
           >
             <Navigation className={`h-5 w-5 ${locating ? 'animate-pulse' : ''}`} strokeWidth={2} fill={userPos ? 'currentColor' : 'none'} />
@@ -497,9 +482,6 @@ export default function MapPage() {
         onSelect={selectStop}
         snap={sheetSnap}
         setSnap={setSheetSnap}
-        onLocate={() => requestLocate(true)}
-        locating={locating}
-        located={!!userPos}
       />
     </div>
   )
