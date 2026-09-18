@@ -114,7 +114,7 @@ export default function MapPage() {
         <aside className="hidden w-80 shrink-0 overflow-y-auto border-r border-ink-900/5 bg-paper-50 p-6 lg:block">
           <div className="flex items-center gap-2">
             <span className={`rounded-full px-2.5 py-1 text-xs font-bold text-white ${isAI ? 'bg-ocean-600' : 'bg-brick-600'}`}>
-              {isAI ? 'AI 客製' : '島轉推薦'}
+              {isAI ? 'AI 客製' : '島轉精選'}
             </span>
             <span className="text-xs text-ink-400">共 {islandRoute.length} 站，約 {totalHours} 小時</span>
           </div>

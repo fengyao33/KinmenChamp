@@ -6,19 +6,19 @@ const STEPS = [
   {
     icon: Compass,
     title: '選一種玩法',
-    desc: '島轉在地精選，或讓 AI 為你客製。',
+    desc: '島轉在地精選 / AI 專業客製',
     tint: 'bg-brick-600',
   },
   {
     icon: Sparkles,
     title: '拿到專屬路線',
-    desc: '結合評論、優惠與在地資訊，一次排好。',
+    desc: '結合評論、優惠與在地活動',
     tint: 'bg-sun-500',
   },
   {
     icon: Map,
     title: '跟著地圖走',
-    desc: '打開金門地圖，一站一站跟著走。',
+    desc: '一站一站跟著走',
     tint: 'bg-ocean-600',
   },
 ]
@@ -29,12 +29,8 @@ export default function Landing() {
   return (
     <div className="min-h-full bg-paper-100">
       {/* 頂列 */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+      <header className="mx-auto flex max-w-6xl items-center px-6 py-5">
         <Logo className="h-9" clickable={false} />
-        <nav className="hidden gap-7 text-sm font-medium text-ink-500 sm:flex">
-          <a className="transition hover:text-ink-900" href="#how">怎麼玩</a>
-          <a className="transition hover:text-ink-900" href="#">關於島轉</a>
-        </nav>
       </header>
 
       {/* Hero */}
@@ -63,9 +59,6 @@ export default function Landing() {
             開始探索金門
             <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
           </button>
-          <p className="dz-rise mt-4 text-sm text-ink-400" style={{ animationDelay: '300ms' }}>
-            免登入，點開就能走
-          </p>
         </div>
 
         {/* 海浪 footer */}
@@ -103,12 +96,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* footer */}
-      <footer className="bg-paper-100">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 py-10 text-center sm:flex-row sm:justify-between sm:text-left">
-          <Logo className="h-8" clickable={false} />
-          <p className="text-sm text-ink-400">換個角度看金門，換種方式玩金門</p>
-        </div>
+      <footer className="bg-ocean-700 px-6 py-4">
+        <p className="text-xs text-ocean-100/70">© 2026 島轉版權所有</p>
       </footer>
     </div>
   )

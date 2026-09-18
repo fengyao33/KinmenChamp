@@ -36,12 +36,12 @@ export default function Choose() {
             </div>
 
             <div className="flex flex-1 flex-col p-6">
-              <h2 className="text-xl font-black text-ink-900">島轉推薦</h2>
+              <h2 className="text-xl font-black text-ink-900">島轉精選</h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-500">
                 在地團隊實地編排的精選路線，不用想，直接照著走。
               </p>
               <ul className="mt-4 space-y-2 text-sm text-ink-700">
-                {['涵蓋美食、文化與景點', '全程約 3 小時', '適合第一次來金門'].map((t) => (
+                {['涵蓋美食、文化與景點', '多元私房行程', '適合第一次來金門'].map((t) => (
                   <li key={t} className="flex items-center gap-2">
                     <Check className="h-4 w-4 shrink-0 text-brick-600" strokeWidth={3} />
                     {t}
@@ -81,7 +81,7 @@ export default function Choose() {
                 回答幾個問題，AI 依你的偏好生成專屬路線。
               </p>
               <ul className="mt-4 space-y-2 text-sm text-ink-700">
-                {['結合評論與優惠', '可調整天數與主題', '隨時能重新規劃'].map((t) => (
+                {['結合評論、優惠與在地活動', '可調整天數與主題', '隨時能重新規劃'].map((t) => (
                   <li key={t} className="flex items-center gap-2">
                     <Check className="h-4 w-4 shrink-0 text-ocean-600" strokeWidth={3} />
                     {t}
