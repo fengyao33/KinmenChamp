@@ -25,9 +25,9 @@ import {
 import Logo from '../components/Logo'
 import {
   categoryLabel,
+  curatedRoutes,
   extraPois,
   feed,
-  islandRoute,
   type Category,
   type Stop,
 } from '../data/mock'
@@ -73,6 +73,16 @@ function MapClick({ onClick }: { onClick: () => void }) {
   return null
 }
 
+/* 進入時把整條路線框進視野 */
+function FitRoute({ positions }: { positions: [number, number][] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (positions.length) map.fitBounds(positions, { padding: [60, 60] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map])
+  return null
+}
+
 function ZoomControls() {
   const map = useMap()
   return (
@@ -98,17 +108,19 @@ const CATS: { key: Category | 'all'; icon: LucideIcon }[] = [
 
 /* 共用清單:行程 */
 function ItineraryList({
+  stops,
   selectedId,
   onSelect,
 }: {
+  stops: Stop[]
   selectedId?: string
   onSelect: (s: Stop) => void
 }) {
   return (
     <ol>
-      {islandRoute.map((s, i) => (
+      {stops.map((s, i) => (
         <li key={s.id} className="relative pb-7 pl-11 last:pb-0">
-          {i < islandRoute.length - 1 && (
+          {i < stops.length - 1 && (
             <span className="absolute top-9 left-[15px] h-full w-0.5 border-l-2 border-dashed border-paper-300" />
           )}
           <button onClick={() => onSelect(s)} className="group block w-full text-left">
@@ -135,38 +147,71 @@ function ItineraryList({
   )
 }
 
-/* 共用清單:在地動態 */
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let p = el?.parentElement ?? null
+  while (p) {
+    const oy = getComputedStyle(p).overflowY
+    if (oy === 'auto' || oy === 'scroll') return p
+    p = p.parentElement
+  }
+  return null
+}
+
+/* 共用清單:在地動態(捲到底自動載入更多) */
 function FeedCards() {
+  const [count, setCount] = useState(4)
+  const sentinel = useRef<HTMLDivElement>(null)
+  const hasMore = count < feed.length
+
+  useEffect(() => {
+    if (!hasMore) return
+    const sc = getScrollParent(sentinel.current)
+    if (!sc) return
+    const loadMore = () => setCount((c) => Math.min(c + 3, feed.length))
+    const onScroll = () => {
+      if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 220) loadMore()
+    }
+    // 內容還撐不出捲軸時,先自動補到可捲動
+    if (sc.scrollHeight <= sc.clientHeight + 1) loadMore()
+    sc.addEventListener('scroll', onScroll, { passive: true })
+    return () => sc.removeEventListener('scroll', onScroll)
+  }, [hasMore, count])
+
   return (
-    <>
-      <div className="space-y-3">
-        {feed.map((f) => (
-          <article key={f.id} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="flex gap-3 p-3">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ocean-100 to-sun-300/40 text-ocean-400">
-                <ImageIcon className="h-6 w-6" strokeWidth={1.5} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-bold text-ink-900">{f.title}</h3>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-500">{f.summary}</p>
-              </div>
+    <div className="space-y-3">
+      {feed.slice(0, count).map((f) => (
+        <article key={f.id} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:-translate-y-0.5 hover:shadow-md">
+          <div className="flex gap-3 p-3">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ocean-100 to-sun-300/40 text-ocean-400">
+              <ImageIcon className="h-6 w-6" strokeWidth={1.5} />
             </div>
-            <p className="border-t border-paper-200 px-3 py-2 text-[11px] text-ink-400">
-              {f.source}，{f.time}
-            </p>
-          </article>
-        ))}
-      </div>
-      <button className="mt-4 w-full rounded-full bg-paper-200 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-paper-300">
-        查看更多
-      </button>
-    </>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-ink-900">{f.title}</h3>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-500">{f.summary}</p>
+            </div>
+          </div>
+          <p className="border-t border-paper-200 px-3 py-2 text-[11px] text-ink-400">
+            {f.source}，{f.time}
+          </p>
+        </article>
+      ))}
+
+      {hasMore ? (
+        <div ref={sentinel} className="flex justify-center py-4">
+          <span className="dz-spin-fast h-5 w-5 rounded-full border-2 border-paper-300 border-t-ocean-500" />
+        </div>
+      ) : (
+        <p className="py-4 text-center text-xs text-ink-400">沒有更多了</p>
+      )}
+    </div>
   )
 }
 
 /* 手機底部抽屜:可拖曳三段式 + 行程/動態分頁(用 transform 位移,避免 layout thrash) */
 function MobileSheet({
   isAI,
+  routeTitle,
+  stops,
   totalHours,
   selectedId,
   onSelect,
@@ -174,6 +219,8 @@ function MobileSheet({
   setSnap,
 }: {
   isAI: boolean
+  routeTitle: string
+  stops: Stop[]
   totalHours: string
   selectedId?: string
   onSelect: (s: Stop) => void
@@ -182,38 +229,26 @@ function MobileSheet({
 }) {
   const initVh = typeof window !== 'undefined' ? window.innerHeight : 800
   const [tab, setTab] = useState<'route' | 'feed'>('route')
-  const [fullH, setFullH] = useState(Math.round(initVh * 0.9))
-  const [off, setOff] = useState<number | null>(null) // translateY 位移
+  const [h, setH] = useState(Math.round(initVh * 0.5)) // 抽屜露出高度
   const [animate, setAnimate] = useState(true)
-  const drag = useRef({ active: false, startY: 0, startOff: 0, moved: 0, curOff: 0 })
+  const drag = useRef({ active: false, startY: 0, startH: 0, moved: 0, curH: 0 })
 
-  // 各段「露出高度」與對應位移
-  const dims = () => {
+  const snapHeights = () => {
     const vh = window.innerHeight
-    const full = Math.round(vh * 0.9)
-    return { full, visible: [140, Math.round(vh * 0.5), full] }
-  }
-  const offForSnap = (i: number) => {
-    const { full, visible } = dims()
-    return full - visible[i]
+    return [140, Math.round(vh * 0.5), Math.round(vh * 0.9)]
   }
 
   useEffect(() => {
     setAnimate(true)
-    setOff(offForSnap(snap))
-    setFullH(dims().full)
-    const onResize = () => {
-      setFullH(dims().full)
-      setOff(offForSnap(snap))
-    }
+    setH(snapHeights()[snap])
+    const onResize = () => setH(snapHeights()[snap])
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snap])
 
   const onDown = (e: React.PointerEvent) => {
-    const startOff = off ?? offForSnap(snap)
-    drag.current = { active: true, startY: e.clientY, startOff, moved: 0, curOff: startOff }
+    drag.current = { active: true, startY: e.clientY, startH: h, moved: 0, curH: h }
     setAnimate(false)
     try {
       e.currentTarget.setPointerCapture?.(e.pointerId)
@@ -225,9 +260,9 @@ function MobileSheet({
     if (!drag.current.active) return
     const dy = e.clientY - drag.current.startY
     drag.current.moved = Math.max(drag.current.moved, Math.abs(dy))
-    const newOff = Math.min(Math.max(drag.current.startOff + dy, 0), fullH - 110)
-    drag.current.curOff = newOff
-    setOff(newOff)
+    const newH = Math.min(Math.max(drag.current.startH - dy, 110), Math.round(window.innerHeight * 0.92))
+    drag.current.curH = newH
+    setH(newH)
   }
   const onUp = () => {
     if (!drag.current.active) return
@@ -237,17 +272,18 @@ function MobileSheet({
       setSnap((s) => (s >= 2 ? 0 : s + 1)) // 點按:往上開一段,到頂則收合
       return
     }
-    const cur = drag.current.curOff
+    const arr = snapHeights()
+    const cur = drag.current.curH
     let ni = 0
     let best = Infinity
-    ;[0, 1, 2].forEach((i) => {
-      const d = Math.abs(offForSnap(i) - cur)
+    arr.forEach((v, i) => {
+      const d = Math.abs(v - cur)
       if (d < best) {
         best = d
         ni = i
       }
     })
-    setOff(offForSnap(ni))
+    setH(arr[ni])
     setSnap(ni)
   }
 
@@ -262,11 +298,7 @@ function MobileSheet({
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-[550] lg:hidden"
-      style={{
-        height: fullH,
-        transform: `translateY(${off ?? offForSnap(snap)}px)`,
-        transition: animate ? 'transform 0.32s cubic-bezier(0.16,1,0.3,1)' : 'none',
-      }}
+      style={{ height: h, transition: animate ? 'height 0.32s cubic-bezier(0.16,1,0.3,1)' : 'none' }}
     >
       <div className="flex h-full flex-col rounded-t-3xl bg-paper-50 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] ring-1 ring-ink-900/10">
         {/* 拖曳把手 */}
@@ -295,16 +327,17 @@ function MobileSheet({
         </div>
 
         {/* 內容 */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {tab === 'route' ? (
             <>
-              <p className="mb-4 text-xs text-ink-400">
-                <span className={`mr-1.5 rounded-full px-2 py-0.5 font-bold text-white ${isAI ? 'bg-ocean-600' : 'bg-brick-600'}`}>
+              <div className="mb-1 flex items-center gap-1.5 text-xs text-ink-400">
+                <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 font-bold text-white ${isAI ? 'bg-ocean-600' : 'bg-brick-600'}`}>
                   {isAI ? 'AI 客製' : '島轉精選'}
                 </span>
-                共 {islandRoute.length} 站，約 {totalHours} 小時
-              </p>
-              <ItineraryList selectedId={selectedId} onSelect={onSelect} />
+                共 {stops.length} 站，約 {totalHours} 小時
+              </div>
+              <h3 className="mb-4 text-base font-black text-ink-900">{routeTitle}</h3>
+              <ItineraryList stops={stops} selectedId={selectedId} onSelect={onSelect} />
             </>
           ) : (
             <FeedCards />
@@ -319,6 +352,9 @@ export default function MapPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const isAI = params.get('type') === 'ai'
+  const route = curatedRoutes.find((r) => r.id === params.get('route')) ?? curatedRoutes[0]
+  const stops = route.stops
+  const routeTitle = isAI ? '為你生成的行程' : route.title
 
   const [selected, setSelected] = useState<Stop | null>(null)
   const [filter, setFilter] = useState<Category | 'all'>('all')
@@ -354,10 +390,10 @@ export default function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const routePositions = islandRoute.map((s) => [s.lat, s.lng] as [number, number])
+  const routePositions = stops.map((s) => [s.lat, s.lng] as [number, number])
   const totalHours = useMemo(
-    () => (islandRoute.reduce((a, s) => a + s.stayMin, 0) / 60).toFixed(1).replace(/\.0$/, ''),
-    [],
+    () => (stops.reduce((a, s) => a + s.stayMin, 0) / 60).toFixed(1).replace(/\.0$/, ''),
+    [stops],
   )
   const showPoi = (cat: Category) => filter === 'all' || filter === cat
 
@@ -382,14 +418,11 @@ export default function MapPage() {
             <span className={`rounded-full px-2.5 py-1 text-xs font-bold text-white ${isAI ? 'bg-ocean-600' : 'bg-brick-600'}`}>
               {isAI ? 'AI 客製' : '島轉精選'}
             </span>
-            <span className="text-xs text-ink-400">共 {islandRoute.length} 站，約 {totalHours} 小時</span>
+            <span className="text-xs text-ink-400">共 {stops.length} 站，約 {totalHours} 小時</span>
           </div>
-          <h2 className="mt-3 text-xl font-black text-ink-900">本次行程</h2>
+          <h2 className="mt-3 text-xl font-black text-ink-900">{routeTitle}</h2>
           <div className="mt-6">
-            <ItineraryList selectedId={selected?.id} onSelect={setSelected} />
-          </div>
-          <div className="mt-4 rounded-2xl bg-paper-100 p-4 text-xs text-ink-500">
-            全程約 2.6 公里，建議上午出發。
+            <ItineraryList stops={stops} selectedId={selected?.id} onSelect={setSelected} />
           </div>
         </aside>
 
@@ -425,12 +458,13 @@ export default function MapPage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <FlyTo stop={selected} />
+            <FitRoute positions={routePositions} />
             <MapClick onClick={collapseAll} />
             <ZoomControls />
 
             <Polyline positions={routePositions} pathOptions={{ color: '#1b6fa6', weight: 4, dashArray: '1 9', lineCap: 'round' }} />
 
-            {islandRoute.map((s) => (
+            {stops.map((s) => (
               <Marker
                 key={s.id}
                 position={[s.lat, s.lng]}
@@ -477,6 +511,8 @@ export default function MapPage() {
       {/* 手機底部抽屜 */}
       <MobileSheet
         isAI={isAI}
+        routeTitle={routeTitle}
+        stops={stops}
         totalHours={totalHours}
         selectedId={selected?.id}
         onSelect={selectStop}

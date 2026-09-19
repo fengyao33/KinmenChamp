@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import Landing from './pages/Landing'
 import Choose from './pages/Choose'
+import Routes from './pages/Routes'
 import Form from './pages/Form'
 import Loading from './pages/Loading'
 import MapPage from './pages/MapPage'
@@ -11,6 +12,7 @@ import MapPage from './pages/MapPage'
 const router = createBrowserRouter([
   { path: '/', element: <Landing /> },
   { path: '/choose', element: <Choose /> },
+  { path: '/routes', element: <Routes /> },
   { path: '/form', element: <Form /> },
   { path: '/loading', element: <Loading /> },
   { path: '/map', element: <MapPage /> },

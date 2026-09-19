@@ -173,6 +173,10 @@ body {
   animation: dz-spin 6s linear infinite;
   transform-origin: center;
 }
+.dz-spin-fast {
+  animation: dz-spin 0.8s linear infinite;
+  transform-origin: center;
+}
 @keyframes dz-rise {
   from {
     opacity: 0;
@@ -199,6 +203,7 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .dz-spin,
+  .dz-spin-fast,
   .dz-rise,
   .dz-bob {
     animation: none;

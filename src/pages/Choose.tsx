@@ -16,7 +16,7 @@ export default function Choose() {
 
   return (
     <div className="flex min-h-full flex-col bg-paper-100">
-      <Header showBack backTo="/" />
+      <Header showBack />
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-12 sm:py-16">
         <div className="text-center">
@@ -62,7 +62,7 @@ export default function Choose() {
                 ))}
               </ul>
               <button
-                onClick={() => navigate('/map?type=island')}
+                onClick={() => navigate('/routes')}
                 className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-brick-600 px-5 py-3.5 font-bold text-white transition hover:bg-brick-700"
               >
                 看推薦路線 <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
@@ -112,11 +112,11 @@ export default function Choose() {
         </div>
 
         {/* 分頁圓點(手機) */}
-        <div className="mt-5 flex justify-center gap-2 md:hidden">
+        <div className="mt-5 flex items-center justify-center gap-2 md:hidden">
           {[0, 1].map((i) => (
             <span
               key={i}
-              className={`h-2 rounded-full transition-all ${idx === i ? 'w-6 bg-brick-600' : 'w-2 bg-paper-300'}`}
+              className={`rounded-full transition-all ${idx === i ? 'h-2.5 w-2.5 bg-brick-600' : 'h-2 w-2 bg-paper-300'}`}
             />
           ))}
         </div>
