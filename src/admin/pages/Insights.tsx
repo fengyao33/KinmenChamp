@@ -26,8 +26,9 @@ export default function Insights() {
     <div>
       <PageHeader title="評論與旅遊資訊" desc="檢視外部評論與旅遊資訊,需要更新時手動重抓,系統會爬取後交給 AI 整理。" />
 
+      <div className="grid grid-cols-2 items-start gap-4">
       {/* 外部評論 */}
-      <Card className="mb-5 p-5">
+      <Card className="p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brick-50 text-brick-600">
@@ -95,6 +96,7 @@ export default function Insights() {
           ))}
         </div>
       </Card>
+      </div>
     </div>
   )
 }
