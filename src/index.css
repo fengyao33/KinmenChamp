@@ -232,6 +232,19 @@ body {
   animation: dz-slide-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 後台手機抽屜:從左滑入 */
+@keyframes dz-slide-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.dz-slide-left {
+  animation: dz-slide-left 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* 詳情卡:手機從底部滑上、桌面淡入 */
 @keyframes dz-sheet-desktop {
   from {
