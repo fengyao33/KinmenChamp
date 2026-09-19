@@ -1,9 +1,18 @@
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Check, Route, Sparkles } from 'lucide-react'
 import Header from '../components/Header'
 
 export default function Choose() {
   const navigate = useNavigate()
+  const scroller = useRef<HTMLDivElement>(null)
+  const [idx, setIdx] = useState(0)
+
+  const onScroll = () => {
+    const el = scroller.current
+    if (!el) return
+    setIdx(Math.round(el.scrollLeft / el.clientWidth))
+  }
 
   return (
     <div className="flex min-h-full flex-col bg-paper-100">
@@ -17,9 +26,13 @@ export default function Choose() {
           <p className="mt-3 text-ink-500">選一種方式開始</p>
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          {/* 島轉推薦 */}
-          <article className="group flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:-translate-y-1 hover:shadow-xl">
+        <div
+          ref={scroller}
+          onScroll={onScroll}
+          className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible"
+        >
+          {/* 島轉精選 */}
+          <article className="group flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:shadow-xl sm:w-[68%] md:w-auto md:hover:-translate-y-1">
             <div className="relative h-36 overflow-hidden bg-brick-600">
               <svg viewBox="0 0 400 140" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full opacity-90">
                 <path d="M40,110 C120,60 180,120 240,80 C290,48 330,70 370,40" fill="none" stroke="#ffffff" strokeWidth="3" strokeDasharray="2 10" strokeLinecap="round" opacity="0.7" />
@@ -36,12 +49,12 @@ export default function Choose() {
             </div>
 
             <div className="flex flex-1 flex-col p-6">
-              <h2 className="text-xl font-black text-ink-900">島轉推薦</h2>
+              <h2 className="text-xl font-black text-ink-900">島轉精選</h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-500">
                 在地團隊實地編排的精選路線，不用想，直接照著走。
               </p>
               <ul className="mt-4 space-y-2 text-sm text-ink-700">
-                {['涵蓋美食、文化與景點', '全程約 3 小時', '適合第一次來金門'].map((t) => (
+                {['涵蓋美食、文化與景點', '多元私房行程', '適合第一次來金門'].map((t) => (
                   <li key={t} className="flex items-center gap-2">
                     <Check className="h-4 w-4 shrink-0 text-brick-600" strokeWidth={3} />
                     {t}
@@ -49,7 +62,7 @@ export default function Choose() {
                 ))}
               </ul>
               <button
-                onClick={() => navigate('/map?type=island')}
+                onClick={() => navigate('/routes')}
                 className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-brick-600 px-5 py-3.5 font-bold text-white transition hover:bg-brick-700"
               >
                 看推薦路線 <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
@@ -58,7 +71,7 @@ export default function Choose() {
           </article>
 
           {/* AI 客製 */}
-          <article className="group flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:-translate-y-1 hover:shadow-xl">
+          <article className="group flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-ink-900/5 transition hover:shadow-xl sm:w-[68%] md:w-auto md:hover:-translate-y-1">
             <div className="relative h-36 overflow-hidden bg-ocean-600">
               <svg viewBox="0 0 400 140" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
                 {[
@@ -81,7 +94,7 @@ export default function Choose() {
                 回答幾個問題，AI 依你的偏好生成專屬路線。
               </p>
               <ul className="mt-4 space-y-2 text-sm text-ink-700">
-                {['結合評論與優惠', '可調整天數與主題', '隨時能重新規劃'].map((t) => (
+                {['結合評論、優惠與在地活動', '可調整天數與主題', '隨時能重新規劃'].map((t) => (
                   <li key={t} className="flex items-center gap-2">
                     <Check className="h-4 w-4 shrink-0 text-ocean-600" strokeWidth={3} />
                     {t}
@@ -96,6 +109,16 @@ export default function Choose() {
               </button>
             </div>
           </article>
+        </div>
+
+        {/* 分頁圓點(手機) */}
+        <div className="mt-5 flex items-center justify-center gap-2 md:hidden">
+          {[0, 1].map((i) => (
+            <span
+              key={i}
+              className={`rounded-full transition-all ${idx === i ? 'h-2.5 w-2.5 bg-brick-600' : 'h-2 w-2 bg-paper-300'}`}
+            />
+          ))}
         </div>
       </main>
     </div>

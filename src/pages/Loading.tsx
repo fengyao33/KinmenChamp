@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
 
-const STEPS = ['讀取你的旅遊偏好', '比對在地店家與優惠', '整理最新評論與旅遊資訊', '生成最佳路線']
+const STEPS = ['讀取你的旅遊偏好', '比對在地優惠與活動', '整理最新評論與旅遊資訊', '生成最佳路線']
 
 export default function Loading() {
   const navigate = useNavigate()
