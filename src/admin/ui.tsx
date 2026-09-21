@@ -141,7 +141,7 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return <div className={`rounded-2xl bg-white shadow-sm ring-1 ring-ink-900/5 ${className}`}>{children}</div>
 }
 
-export function PageHeader({ title, desc, actions }: { title: string; desc?: string; actions?: ReactNode }) {
+export function PageHeader({ title, desc, actions }: { title: string; desc?: ReactNode; actions?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>

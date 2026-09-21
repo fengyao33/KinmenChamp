@@ -1,4 +1,4 @@
-// 島轉 MVP 假資料,之後由後端接手(店家資料、評論整理、旅遊資訊、AI 生成路線)
+// 島轉 MVP 假資料,之後由後端接手(商家資料、評論整理、旅遊資訊、AI 生成路線)
 
 export type Category = 'food' | 'culture' | 'nature' | 'shopping'
 
@@ -86,7 +86,7 @@ export const curatedRoutes: CuratedRoute[] = [
         rating: 4.5,
         reviewCount: 210,
         tags: ['掃碼領券'],
-        aiSummary: ['老街小吃與伴手禮多,適合慢逛', '傍晚氣氛好,多家店有掃碼折扣', '部分店家公休日不同,出發前先查'],
+        aiSummary: ['老街小吃與伴手禮多,適合慢逛', '傍晚氣氛好,多家店有掃碼折扣', '部分商家公休日不同,出發前先查'],
       },
     ],
   },
@@ -256,7 +256,7 @@ export const feed: FeedItem[] = [
   {
     id: 'f6',
     title: '沙美老街 新開文青咖啡',
-    summary: '沙美老街新開幾家老屋改建咖啡館,適合逛完聚落坐下歇腳,部分店家假日限量供應甜點。',
+    summary: '沙美老街新開幾家老屋改建咖啡館,適合逛完聚落坐下歇腳,部分商家假日限量供應甜點。',
     source: '在地生活誌',
     time: '2 週前',
   },

@@ -22,6 +22,7 @@ export interface Offer {
   storeId: string
   kind: OfferKind // 優惠 / 活動
   title: string
+  published: boolean // 上架
 }
 
 export interface AdminRoute {
@@ -30,6 +31,7 @@ export interface AdminRoute {
   summary: string
   theme: 'brick' | 'ocean' | 'ochre'
   storeIds: string[]
+  stays?: Record<string, string> // 各站停留時間(以 storeId 為 key)
   published: boolean
 }
 
@@ -39,6 +41,7 @@ export interface FormField {
   label: string
   type: FieldType
   options: string[]
+  published?: boolean // 上架(未設定視為上架)
 }
 
 export interface TravelInfo {
@@ -80,7 +83,7 @@ function seed(): AdminDB {
       }
       for (const t of s.tags) {
         const kind: OfferKind = /優惠|折|券|送/.test(t) ? 'offer' : 'activity'
-        offers.push({ id: `${s.id}-${offers.length}`, storeId: s.id, kind, title: t })
+        offers.push({ id: `${s.id}-${offers.length}`, storeId: s.id, kind, title: t, published: true })
       }
     }
   }

@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { ArrowDown, ArrowUp, ListChecks, Plus, Trash2, X } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { GripVertical, ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { loadDB, saveDB, uid, type AdminDB, type FieldType, type FormField } from '../data'
-import { Btn, Card, EmptyState, Field, Modal, PageHeader, SelectField, Textarea, useToast } from '../ui'
+import { Btn, Card, EmptyState, Field, Modal, PageHeader, SelectField, StatusPill, Textarea, Toggle, useToast } from '../ui'
 
 const TYPE_OPTIONS: { value: FieldType; label: string }[] = [
   { value: 'single', label: '單選' },
@@ -9,13 +9,14 @@ const TYPE_OPTIONS: { value: FieldType; label: string }[] = [
   { value: 'text', label: '自由填答' },
 ]
 const typeLabel = (t: FieldType) => TYPE_OPTIONS.find((o) => o.value === t)!.label
-const blank = (): FormField => ({ id: uid(), label: '', type: 'single', options: ['選項一'] })
+const blank = (): FormField => ({ id: uid(), label: '', type: 'single', options: ['選項一'], published: true })
 
 export default function FormDesigner() {
   const toast = useToast()
   const [db, setDb] = useState<AdminDB>(loadDB())
   const [editing, setEditing] = useState<FormField | null>(null)
   const [isNew, setIsNew] = useState(false)
+  const [deleting, setDeleting] = useState<FormField | null>(null)
 
   const update = (next: AdminDB) => {
     setDb(next)
@@ -38,25 +39,59 @@ export default function FormDesigner() {
     toast(isNew ? '題目已新增' : '題目已更新')
   }
 
-  const remove = (id: string) => {
-    update({ ...db, form: db.form.filter((f) => f.id !== id) })
-    setEditing(null)
+  const confirmRemove = () => {
+    if (!deleting) return
+    update({ ...db, form: db.form.filter((f) => f.id !== deleting.id) })
+    setDeleting(null)
     toast('題目已刪除')
   }
 
-  const move = (i: number, dir: -1 | 1) => {
-    const arr = [...db.form]
-    const j = i + dir
-    if (j < 0 || j >= arr.length) return
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-    update({ ...db, form: arr })
+  const togglePublish = (id: string, on: boolean) =>
+    update({ ...db, form: db.form.map((f) => (f.id === id ? { ...f, published: on } : f)) })
+
+  // 拖曳排序:pointer 事件,滑鼠與觸控都能拖
+  const dragFrom = useRef<number | null>(null)
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [dragging, setDragging] = useState<number | null>(null)
+
+  const onDragStart = (i: number, e: React.PointerEvent) => {
+    dragFrom.current = i
+    setDragging(i)
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  }
+  const onDragMove = (e: React.PointerEvent) => {
+    if (dragFrom.current === null) return
+    const y = e.clientY
+    const arr = db.form
+    let target = arr.length - 1
+    for (let k = 0; k < arr.length; k++) {
+      const el = itemRefs.current[k]
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      if (y < rect.top + rect.height / 2) {
+        target = k
+        break
+      }
+    }
+    if (target !== dragFrom.current) {
+      const next = [...arr]
+      const [moved] = next.splice(dragFrom.current, 1)
+      next.splice(target, 0, moved)
+      dragFrom.current = target
+      setDragging(target)
+      update({ ...db, form: next })
+    }
+  }
+  const onDragEnd = () => {
+    dragFrom.current = null
+    setDragging(null)
   }
 
   return (
     <div>
       <PageHeader
-        title="AI 表單設計"
-        desc="設定旅客在「AI 客製」要回答的題目。送出後會交給 AI 生成專屬路線。"
+        title="設計 AI 客製化問卷"
+        desc="設定旅客想要 AI 客製化遊程時,要回答的題目"
         actions={
           <Btn onClick={() => { setEditing(blank()); setIsNew(true) }}>
             <Plus className="h-4 w-4" strokeWidth={2.5} /> 新增題目
@@ -72,37 +107,59 @@ export default function FormDesigner() {
           action={<Btn onClick={() => { setEditing(blank()); setIsNew(true) }}><Plus className="h-4 w-4" strokeWidth={2.5} /> 新增題目</Btn>}
         />
       ) : (
-        <div className="space-y-3">
-          {db.form.map((f, i) => (
-            <Card key={f.id} className="flex items-start gap-3 p-4">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ocean-600 text-xs font-black text-white">{i + 1}</span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-bold text-ink-900">{f.label}</h3>
-                  <span className="rounded-full bg-paper-200 px-2 py-0.5 text-xs font-medium text-ink-600">{typeLabel(f.type)}</span>
-                </div>
-                {f.type === 'text' ? (
-                  <p className="mt-1 text-sm text-ink-400">旅客自由輸入文字</p>
-                ) : (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {f.options.map((o) => (
-                      <span key={o} className="rounded-full border border-paper-300 px-2.5 py-0.5 text-xs text-ink-600">{o}</span>
-                    ))}
+        <>
+          <p className="mb-2 text-xs text-ink-400">拖曳左側把手可調整題目順序</p>
+          <div className="space-y-3">
+            {db.form.map((f, i) => (
+              <div key={f.id} ref={(el) => { itemRefs.current[i] = el }}>
+                <Card className={`flex flex-col gap-3 p-4 transition sm:flex-row sm:items-start ${dragging === i ? 'ring-2 ring-ocean-400' : ''}`}>
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <button
+                      onPointerDown={(e) => onDragStart(i, e)}
+                      onPointerMove={onDragMove}
+                      onPointerUp={onDragEnd}
+                      onPointerCancel={onDragEnd}
+                      aria-label={`拖曳排序 ${f.label}`}
+                      style={{ touchAction: 'none' }}
+                      className="mt-0.5 flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-ink-400 transition hover:bg-paper-200 active:cursor-grabbing"
+                    >
+                      <GripVertical className="h-4 w-4" strokeWidth={2.5} />
+                    </button>
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ocean-600 text-xs font-black text-white">{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-bold text-ink-900">{f.label}</h3>
+                        <span className="rounded-full bg-paper-200 px-2 py-0.5 text-xs font-medium text-ink-600">{typeLabel(f.type)}</span>
+                        <StatusPill on={f.published !== false} />
+                      </div>
+                      {f.type === 'text' ? (
+                        <p className="mt-1 text-sm text-ink-400">旅客自由輸入文字</p>
+                      ) : (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {f.options.map((o) => (
+                            <span key={o} className="rounded-full border border-paper-300 px-2.5 py-0.5 text-xs text-ink-600">{o}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                  <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-ink-500">上架</span>
+                      <Toggle checked={f.published !== false} onChange={(v) => togglePublish(f.id, v)} label={`上架 ${f.label}`} />
+                    </div>
+                    <Btn variant="secondary" onClick={() => { setEditing({ ...f }); setIsNew(false) }}>
+                      <Pencil className="h-4 w-4" strokeWidth={2} /> 編輯
+                    </Btn>
+                    <button onClick={() => setDeleting(f)} aria-label={`刪除 ${f.label}`} className="flex h-9 w-9 items-center justify-center rounded-full text-ink-400 transition hover:bg-red-50 hover:text-red-600">
+                      <Trash2 className="h-4 w-4" strokeWidth={2} />
+                    </button>
+                  </div>
+                </Card>
               </div>
-              <div className="flex shrink-0 items-center">
-                <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="上移" className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-500 transition hover:bg-paper-200 disabled:opacity-30">
-                  <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
-                </button>
-                <button onClick={() => move(i, 1)} disabled={i === db.form.length - 1} aria-label="下移" className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-500 transition hover:bg-paper-200 disabled:opacity-30">
-                  <ArrowDown className="h-4 w-4" strokeWidth={2.5} />
-                </button>
-                <Btn variant="secondary" className="ml-1" onClick={() => { setEditing({ ...f }); setIsNew(false) }}>編輯</Btn>
-              </div>
-            </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       {editing && (
@@ -110,12 +167,7 @@ export default function FormDesigner() {
           open={!!editing}
           onClose={() => setEditing(null)}
           title={isNew ? '新增題目' : '編輯題目'}
-          footer={
-            <>
-              {!isNew && <Btn variant="danger" onClick={() => remove(editing.id)}><Trash2 className="h-4 w-4" strokeWidth={2} /> 刪除</Btn>}
-              <Btn onClick={save}>儲存</Btn>
-            </>
-          }
+          footer={<Btn onClick={save}>{isNew ? '新增' : '儲存'}</Btn>}
         >
           <div className="space-y-4">
             <Field label="題目" value={editing.label} onChange={(v) => setEditing({ ...editing, label: v })} placeholder="例如:你想玩多久?" />
@@ -149,6 +201,23 @@ export default function FormDesigner() {
           </div>
         </Modal>
       )}
+
+      {/* 刪除確認 */}
+      <Modal
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title="確定要刪除?"
+        footer={
+          <>
+            <Btn variant="secondary" onClick={() => setDeleting(null)}>取消</Btn>
+            <Btn variant="danger" onClick={confirmRemove}>刪除</Btn>
+          </>
+        }
+      >
+        <p className="text-sm text-ink-600">
+          刪掉「{deleting?.label}」這個題目後就找不回來了,確定要刪嗎?
+        </p>
+      </Modal>
     </div>
   )
 }
