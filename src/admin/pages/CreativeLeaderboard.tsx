@@ -8,6 +8,13 @@ type Filter = 'all' | 'visible' | 'hidden'
 type Sort = 'new' | 'votes'
 
 const REASONS = ['不當或違法內容', '廣告或垃圾內容', '侵犯隱私或著作權', '其他']
+const PREVIEW_LENGTH = 30
+const previewDescription = (description: string) => {
+  const characters = Array.from(description.replace(/\s+/g, ' ').trim())
+  return characters.length > PREVIEW_LENGTH
+    ? `${characters.slice(0, PREVIEW_LENGTH).join('')}......`
+    : characters.join('')
+}
 const formatDate = (time: number) => new Intl.DateTimeFormat('zh-TW', {
   year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
 }).format(time)
@@ -164,7 +171,7 @@ export default function CreativeLeaderboard() {
                           <h2 id={`entry-title-${entry.id}`} className="break-words font-bold text-ink-900">{entry.title}</h2>
                           <StatusPill on={!record} />
                         </div>
-                        <p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-ink-600">{entry.desc}</p>
+                        <p className="mt-1 break-words text-sm text-ink-600">{previewDescription(entry.desc)}</p>
                         <p className="mt-1 text-xs text-ink-500">{entry.author} · {formatDate(entry.createdAt)} · {entry.votes} 票 · {entry.photos.length} 張照片</p>
                       </div>
                     </div>
