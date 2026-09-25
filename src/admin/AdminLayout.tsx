@@ -9,6 +9,7 @@ import {
   MessagesSquare,
   Route as RouteIcon,
   Store,
+  Trophy,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -21,6 +22,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
   { to: '/admin/stores', label: '金門商家', icon: Store },
   { to: '/admin/offers', label: '活動與優惠', icon: BadgePercent },
   { to: '/admin/routes', label: '精選遊程', icon: RouteIcon },
+  { to: '/admin/leaderboard', label: '創意排行榜', icon: Trophy },
   { to: '/admin/form', label: 'AI 客製化問卷', icon: MapPinned },
   { to: '/admin/insights', label: '評論與網路情報', icon: MessagesSquare },
 ]

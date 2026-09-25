@@ -17,6 +17,7 @@ import Offers from './admin/pages/Offers'
 import RoutesAdmin from './admin/pages/RoutesAdmin'
 import FormDesigner from './admin/pages/FormDesigner'
 import Insights from './admin/pages/Insights'
+import CreativeLeaderboard from './admin/pages/CreativeLeaderboard'
 
 const router = createBrowserRouter([
   // 旅客端(前台)
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
       { path: 'stores', element: <Stores /> },
       { path: 'offers', element: <Offers /> },
       { path: 'routes', element: <RoutesAdmin /> },
+      { path: 'leaderboard', element: <CreativeLeaderboard /> },
       { path: 'form', element: <FormDesigner /> },
       { path: 'insights', element: <Insights /> },
     ],
