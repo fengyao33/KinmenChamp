@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BadgePercent, CalendarDays, Clock3, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { BadgePercent, CalendarDays, Clock3, Pencil, Plus, Trash2 } from 'lucide-react'
 import { loadDB, saveDB, uid, type AdminDB, type OfferKind } from '../data'
 import { Btn, Card, EmptyState, Field, Modal, PageHeader, SelectField, StatusPill, Toggle, useToast } from '../ui'
 import { formatOfferTime, offerDisplayStatus, offerStatusLabel, toDateTimeLocal } from '../offerSchedule'
@@ -22,7 +22,6 @@ export default function Offers() {
   const [endAt, setEndAt] = useState('')
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState<AdminDB['offers'][number] | null>(null)
-  const [viewing, setViewing] = useState<AdminDB['offers'][number] | null>(null)
   const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
@@ -167,7 +166,6 @@ export default function Offers() {
                   <span className="text-xs text-ink-500">啟用</span>
                   <Toggle checked={o.published !== false} onChange={(v) => togglePublish(o.id, v)} label={`啟用 ${o.title}`} />
                 </div>
-                <Btn variant="secondary" onClick={() => setViewing(o)}><Eye className="h-4 w-4" strokeWidth={2} /> 檢視</Btn>
                 <Btn variant="secondary" onClick={() => openEdit(o)}>
                   <Pencil className="h-4 w-4" strokeWidth={2} /> 編輯
                 </Btn>
@@ -219,18 +217,6 @@ export default function Offers() {
             </>
           )}
         </div>
-      </Modal>
-
-      <Modal open={!!viewing} onClose={() => setViewing(null)} title="檢視活動或優惠" footer={<Btn variant="secondary" onClick={() => setViewing(null)}>關閉</Btn>}>
-        {viewing && (
-          <dl className="space-y-4 text-sm">
-            <div><dt className="font-bold text-ink-700">類型</dt><dd className="mt-1 text-ink-900">{viewing.kind === 'offer' ? '優惠' : '活動'}</dd></div>
-            <div><dt className="font-bold text-ink-700">內容</dt><dd className="mt-1 text-ink-900">{viewing.title}</dd></div>
-            <div><dt className="font-bold text-ink-700">綁定商家</dt><dd className="mt-1 text-ink-900">{storeName[viewing.storeId] ?? '(商家已刪除)'}</dd></div>
-            <div><dt className="font-bold text-ink-700">上架狀態</dt><dd className="mt-1 text-ink-900">{offerStatusLabel[offerDisplayStatus(viewing, now)]}</dd></div>
-            <div><dt className="font-bold text-ink-700">時間區間</dt><dd className="mt-1 text-ink-900">{viewing.startAt && viewing.endAt ? `${formatOfferTime(viewing.startAt)} ～ ${formatOfferTime(viewing.endAt)}` : '未設定'}</dd></div>
-          </dl>
-        )}
       </Modal>
 
       {/* 刪除確認 */}
