@@ -37,6 +37,15 @@ import Logo from '../components/Logo'
 import { UploadSheet } from './Leaderboard'
 import { submitEntry } from '../data/leaderboard'
 import {
+  loadTrip,
+  planSignature,
+  routeFromKey,
+  saveTrip,
+  tripUrl,
+  type SavedTrip,
+  type Transport,
+} from '../data/trip'
+import {
   categoryLabel,
   curatedRoutes,
   extraPois,
@@ -48,8 +57,6 @@ import {
 const KINMEN_CENTER: [number, number] = [24.4326, 118.3185]
 
 /* ---------- 交通方式與移動時間 ---------- */
-// 路線演算法一次只能用一種交通工具,所以交通方式是「整趟行程」一個設定
-type Transport = 'walk' | 'scooter' | 'drive'
 type PlanStop = Stop
 const TRANSPORT_LIST: { key: Transport; label: string; icon: LucideIcon; speed: number }[] = [
   { key: 'walk', label: '步行', icon: Footprints, speed: 4.5 },
@@ -78,37 +85,9 @@ function transportFromLeg(text?: string): Transport {
   return 'walk'
 }
 
-/* ---------- 目前行程:存在這台裝置 ---------- */
-const TRIP_KEY = 'dz_current_trip'
-interface SavedTrip {
-  key: string // 'ai' 或 'island:<routeId>'
-  plan: PlanStop[]
-  original: PlanStop[] // 推薦的原始行程,用來「恢復成推薦行程」
-  transport?: Transport // 整趟行程的交通方式
-}
-function loadTrip(): SavedTrip | null {
-  try {
-    const raw = localStorage.getItem(TRIP_KEY)
-    return raw ? (JSON.parse(raw) as SavedTrip) : null
-  } catch {
-    return null
-  }
-}
-function saveTrip(t: SavedTrip) {
-  try {
-    localStorage.setItem(TRIP_KEY, JSON.stringify(t))
-  } catch {
-    /* 忽略寫入失敗 */
-  }
-}
-function routeFromKey(key: string) {
-  const id = key.startsWith('island:') ? key.slice(7) : ''
-  return curatedRoutes.find((r) => r.id === id) ?? curatedRoutes[0]
-}
+/* ---------- 目前行程:存在這台裝置(存取邏輯在 data/trip.ts) ---------- */
 // 推薦路線預設的交通方式(取第一段的說明)
 const defaultTransport = (key: string) => transportFromLeg(routeFromKey(key).stops[0]?.legToNext)
-const tripUrl = (key: string) => (key === 'ai' ? '/map?type=ai' : `/map?type=island&route=${key.slice(7)}`)
-const planSignature = (p: PlanStop[]) => p.map((s) => `${s.id}:${s.stayMin}`).join('|')
 
 function numberIcon(n: number, active: boolean) {
   return L.divIcon({

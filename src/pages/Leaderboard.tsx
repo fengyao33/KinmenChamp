@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, Crown, Heart, ImagePlus, Image as ImageIcon, Lock, ShieldCheck, Trophy, Upload, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Camera, Crown, Heart, ImagePlus, Image as ImageIcon, Lock, MapPinned, ShieldCheck, Trophy, Upload, X } from 'lucide-react'
 import Header from '../components/Header'
+import { loadTrip, tripUrl } from '../data/trip'
 import {
   compressImage,
   loadEntries,
@@ -479,6 +481,8 @@ function DetailSheet({
 }
 
 export default function Leaderboard() {
+  const navigate = useNavigate()
+  const savedTrip = loadTrip()
   const [entries, setEntries] = useState<CreativeEntry[]>(loadEntries)
   const [voted, setVoted] = useState<string[]>(loadVoted)
   const [sort, setSort] = useState<'hot' | 'new'>('hot')
@@ -523,7 +527,22 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen bg-paper-100">
-      <Header showBack backTo="/" />
+      <Header
+        showBack
+        backTo="/"
+        right={
+          savedTrip && (
+            <button
+              onClick={() => navigate(tripUrl(savedTrip.key))}
+              aria-label="回到我的行程"
+              className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full border border-paper-300 bg-white px-3 text-sm font-bold text-ink-700 transition hover:border-brick-400 hover:text-brick-700"
+            >
+              <MapPinned className="h-4 w-4 text-brick-600" strokeWidth={2.5} />
+              我的行程
+            </button>
+          )
+        }
+      />
 
       <main className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
         {/* 吸頂區:標題 + 上傳 + 排序,捲動時固定在頂列下方 */}

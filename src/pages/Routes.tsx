@@ -2,7 +2,9 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Clock, MapPin, Route as RouteIcon, UtensilsCrossed, Waves, type LucideIcon } from 'lucide-react'
 import Header from '../components/Header'
+import ReplaceTripDialog from '../components/ReplaceTripDialog'
 import { curatedRoutes, type RouteTheme } from '../data/mock'
+import { isTripModified, loadTrip, tripTitle, tripUrl } from '../data/trip'
 
 const THEME: Record<RouteTheme, { band: string; chip: string; icon: LucideIcon; cta: string }> = {
   brick: { band: 'bg-brick-600', chip: 'text-brick-600', icon: RouteIcon, cta: 'bg-brick-600 hover:bg-brick-700' },
@@ -16,6 +18,12 @@ export default function Routes() {
   const navigate = useNavigate()
   const scroller = useRef<HTMLDivElement>(null)
   const [idx, setIdx] = useState(0)
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null)
+  const saved = loadTrip()
+
+  // 選路線 = 產生新遊程;若旅客改過目前的行程,先提醒會被取代
+  const goFresh = (id: string) => navigate(`/map?type=island&route=${id}`, { state: { freshTrip: true } })
+  const pickRoute = (id: string) => (saved && isTripModified(saved) ? setPendingRoute(id) : goFresh(id))
 
   const onScroll = () => {
     const el = scroller.current
@@ -45,7 +53,7 @@ export default function Routes() {
             return (
               <button
                 key={r.id}
-                onClick={() => navigate(`/map?type=island&route=${r.id}`, { state: { freshTrip: true } })}
+                onClick={() => pickRoute(r.id)}
                 className="group flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 ring-ink-900/5 transition hover:shadow-xl sm:w-[68%] md:w-auto md:hover:-translate-y-1"
               >
                 {/* 主題帶 */}
@@ -96,6 +104,15 @@ export default function Routes() {
           ))}
         </div>
       </main>
+
+      {pendingRoute && saved && (
+        <ReplaceTripDialog
+          tripName={tripTitle(saved)}
+          onBack={() => navigate(tripUrl(saved.key))}
+          onReplace={() => goFresh(pendingRoute)}
+          onClose={() => setPendingRoute(null)}
+        />
+      )}
     </div>
   )
 }

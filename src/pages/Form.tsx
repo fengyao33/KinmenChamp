@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ReplaceTripDialog from '../components/ReplaceTripDialog'
+import { isTripModified, loadTrip, tripTitle, tripUrl } from '../data/trip'
 import {
   ArrowRight,
   Camera,
@@ -95,8 +97,11 @@ export default function Form() {
   const toggleExp = (e: string) =>
     setExperiences((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]))
 
-  const submit = () =>
-    navigate('/loading', { state: { duration, companion, experiences, note } })
+  // 送出 = 讓 AI 生成新遊程;若旅客改過目前的行程,先提醒會被取代
+  const [confirmReplace, setConfirmReplace] = useState(false)
+  const saved = loadTrip()
+  const generate = () => navigate('/loading', { state: { duration, companion, experiences, note } })
+  const submit = () => (saved && isTripModified(saved) ? setConfirmReplace(true) : generate())
 
   return (
     <div className="flex min-h-full flex-col bg-paper-100">
@@ -180,6 +185,15 @@ export default function Form() {
           </div>
         </div>
       </div>
+
+      {confirmReplace && saved && (
+        <ReplaceTripDialog
+          tripName={tripTitle(saved)}
+          onBack={() => navigate(tripUrl(saved.key))}
+          onReplace={generate}
+          onClose={() => setConfirmReplace(false)}
+        />
+      )}
     </div>
   )
 }

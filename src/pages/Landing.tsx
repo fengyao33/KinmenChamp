@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Compass, Map, Sparkles, Trophy } from 'lucide-react'
+import { ArrowRight, Compass, Map, MapPinned, Sparkles, Trophy } from 'lucide-react'
 import Logo from '../components/Logo'
+import { loadTrip, tripTitle, tripUrl } from '../data/trip'
 
 const STEPS = [
   {
@@ -25,6 +26,7 @@ const STEPS = [
 
 export default function Landing() {
   const navigate = useNavigate()
+  const saved = loadTrip()
 
   return (
     <div className="min-h-full bg-paper-100">
@@ -71,6 +73,18 @@ export default function Landing() {
             開始探索金門
             <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
           </button>
+
+          {/* 有存著的行程才出現:直接回地圖,不會產生新遊程 */}
+          {saved && (
+            <button
+              onClick={() => navigate(tripUrl(saved.key))}
+              className="dz-rise mt-4 inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-paper-300 bg-white/80 px-5 text-sm font-bold text-ink-700 shadow-sm backdrop-blur transition hover:border-brick-400 hover:text-brick-700"
+              style={{ animationDelay: '320ms' }}
+            >
+              <MapPinned className="h-4 w-4 shrink-0 text-brick-600" strokeWidth={2.5} />
+              <span className="truncate">繼續我的行程：{tripTitle(saved)}</span>
+            </button>
+          )}
         </div>
 
         {/* 海浪 footer */}
