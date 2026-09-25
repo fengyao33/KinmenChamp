@@ -28,7 +28,7 @@ export default function AdminLogin() {
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo className="h-12" clickable={false} />
           <h1 className="mt-4 text-2xl font-black text-ink-900">島轉後台</h1>
-          <p className="mt-1 text-sm text-ink-500">管理店家、遊程與旅遊資訊</p>
+          <p className="mt-1 text-sm text-ink-500">管理商家、遊程與旅遊資訊</p>
         </div>
 
         {/* 切換 登入 / 開新帳號 */}

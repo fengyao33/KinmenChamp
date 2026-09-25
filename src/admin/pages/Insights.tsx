@@ -24,13 +24,13 @@ export default function Insights() {
 
   return (
     <div>
-      <PageHeader title="評論與旅遊資訊" desc="檢視外部評論與旅遊資訊,需要更新時手動重抓,系統會爬取後交給 AI 整理。" />
+      <PageHeader title="檢視 Google 評論與網路情報" desc="系統每個禮拜自動抓取一次" />
 
       {/* 切換器:一次看一種 */}
       <div className="mb-5 grid max-w-md grid-cols-2 gap-1 rounded-2xl bg-paper-200 p-1">
         {([
-          { key: 'reviews', label: '店家評論' },
-          { key: 'travel', label: '旅遊資訊' },
+          { key: 'reviews', label: '商家評論' },
+          { key: 'travel', label: '網路情報' },
         ] as const).map((t) => (
           <button
             key={t.key}
@@ -43,7 +43,7 @@ export default function Insights() {
         ))}
       </div>
 
-      {/* 店家評論 */}
+      {/* 商家評論 */}
       {tab === 'reviews' && (
         <Card className="p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -52,7 +52,7 @@ export default function Insights() {
                 <Star className="h-5 w-5" strokeWidth={2} />
               </div>
               <div>
-                <h2 className="font-black text-ink-900">店家評論總結</h2>
+                <h2 className="font-black text-ink-900">商家評論總結</h2>
                 <p className="text-xs text-ink-400">上次更新:{db.crawler.reviewsAt ?? '尚未抓取'}</p>
               </div>
             </div>
@@ -95,13 +95,13 @@ export default function Insights() {
                 <Newspaper className="h-5 w-5" strokeWidth={2} />
               </div>
               <div>
-                <h2 className="font-black text-ink-900">在地旅遊資訊</h2>
+                <h2 className="font-black text-ink-900">網路情報總結</h2>
                 <p className="text-xs text-ink-400">上次更新:{db.crawler.travelAt ?? '尚未抓取'}</p>
               </div>
             </div>
             <Btn variant="secondary" onClick={() => crawl('travel')} disabled={loading === 'travel'}>
               <RefreshCw className={`h-4 w-4 ${loading === 'travel' ? 'dz-spin-fast' : ''}`} strokeWidth={2.5} />
-              {loading === 'travel' ? '抓取中…' : '重新抓取資訊'}
+              {loading === 'travel' ? '抓取中…' : '重新抓取情報'}
             </Btn>
           </div>
 

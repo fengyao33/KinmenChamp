@@ -18,11 +18,11 @@ import { ToastProvider } from './ui'
 
 const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
   { to: '/admin', label: '總覽', icon: LayoutDashboard, end: true },
-  { to: '/admin/stores', label: '店家管理', icon: Store },
+  { to: '/admin/stores', label: '金門商家', icon: Store },
   { to: '/admin/offers', label: '活動與優惠', icon: BadgePercent },
-  { to: '/admin/routes', label: '遊程編排', icon: RouteIcon },
-  { to: '/admin/form', label: 'AI 表單設計', icon: MapPinned },
-  { to: '/admin/insights', label: '評論與旅遊資訊', icon: MessagesSquare },
+  { to: '/admin/routes', label: '精選遊程', icon: RouteIcon },
+  { to: '/admin/form', label: 'AI 客製化問卷', icon: MapPinned },
+  { to: '/admin/insights', label: '評論與網路情報', icon: MessagesSquare },
 ]
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
