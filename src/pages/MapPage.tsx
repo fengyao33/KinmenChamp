@@ -89,20 +89,22 @@ function transportFromLeg(text?: string): Transport {
 // 推薦路線預設的交通方式(取第一段的說明)
 const defaultTransport = (key: string) => transportFromLeg(routeFromKey(key).stops[0]?.legToNext)
 
-function numberIcon(n: number, active: boolean) {
+/* 行程站點:風獅爺小弟 + 站序號碼;腳底對準座標 */
+function stopIcon(n: number, active: boolean) {
   return L.divIcon({
-    html: `<div class="dz-pin ${active ? 'dz-pin--active' : ''}">${n}</div>`,
+    html: `<div class="dz-lion ${active ? 'dz-lion--active' : ''}"><img src="/markers/lion-stop.png" alt="" draggable="false" /><span class="dz-lion__num">${n}</span></div>`,
     className: '',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    iconSize: [48, 50],
+    iconAnchor: [24, 48],
   })
 }
+/* 非行程但我們標註的景點:風獅爺石雕 */
 function poiIcon(active: boolean) {
   return L.divIcon({
-    html: `<div class="dz-poi ${active ? 'dz-poi--active' : ''}"></div>`,
+    html: `<div class="dz-stone ${active ? 'dz-stone--active' : ''}"><img src="/markers/lion-stone.png" alt="" draggable="false" /></div>`,
     className: '',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    iconSize: [36, 36],
+    iconAnchor: [18, 34],
   })
 }
 function meIcon() {
@@ -1009,20 +1011,24 @@ export default function MapPage() {
 
             <Polyline positions={routePositions} pathOptions={{ color: '#1b6fa6', weight: 4, dashArray: '1 9', lineCap: 'round' }} />
 
-            {plan.map((s, i) => (
-              <Marker
-                key={s.id}
-                position={[s.lat, s.lng]}
-                icon={numberIcon(i + 1, selected?.id === s.id)}
-                eventHandlers={{ click: () => setSelected(s) }}
-              />
-            ))}
             {addablePois.filter((p) => showPoi(p.category)).map((p) => (
               <Marker
                 key={p.id}
                 position={[p.lat, p.lng]}
                 icon={poiIcon(selected?.id === p.id)}
+                title={p.name}
+                zIndexOffset={selected?.id === p.id ? 1000 : 0}
                 eventHandlers={{ click: () => setSelected(p) }}
+              />
+            ))}
+            {plan.map((s, i) => (
+              <Marker
+                key={s.id}
+                position={[s.lat, s.lng]}
+                icon={stopIcon(i + 1, selected?.id === s.id)}
+                title={`第 ${i + 1} 站 ${s.name}`}
+                zIndexOffset={selected?.id === s.id ? 1000 : 500}
+                eventHandlers={{ click: () => setSelected(s) }}
               />
             ))}
             {userPos && <Marker position={userPos} icon={meIcon()} />}
