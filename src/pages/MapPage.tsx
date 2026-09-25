@@ -505,16 +505,22 @@ function FeedCards() {
   )
 }
 
-/* 手機底部抽屜 */
-function MobileSheet({
+/* 手機:可拖曳的風獅爺大王小球。點一下展開行程面板,再點一下或按 X 收回 */
+const BALL = 60
+const HEADER_H = 64
+const BALL_POS_KEY = 'dz_ball_pos'
+const BALL_HINT_KEY = 'dz_ball_hint_seen'
+type BallPos = { side: 'left' | 'right'; y: number }
+
+function MobileFloat({
   isAI,
   routeTitle,
   plan,
   count,
   totalLabel,
   ed,
-  snap,
-  setSnap,
+  open,
+  setOpen,
   onEdit,
   onSave,
   onDone,
@@ -529,39 +535,63 @@ function MobileSheet({
   count: number
   totalLabel: string
   ed: EditorApi
-  snap: number
-  setSnap: React.Dispatch<React.SetStateAction<number>>
+  open: boolean
+  setOpen: (v: boolean) => void
   onEdit: () => void
   onSave: () => void
   onDone: () => void
 }) {
-  const initVh = typeof window !== 'undefined' ? window.innerHeight : 800
   const [tab, setTab] = useState<'route' | 'feed'>('route')
-  const [h, setH] = useState(Math.round(initVh * 0.5))
-  const [animate, setAnimate] = useState(true)
-  const drag = useRef({ active: false, startY: 0, startH: 0, moved: 0, curH: 0 })
-
-  const snapHeights = () => {
-    const vh = window.innerHeight
-    return [140, Math.round(vh * 0.5), Math.round(vh * 0.9)]
-  }
-
-  useEffect(() => {
-    setAnimate(true)
-    setH(snapHeights()[snap])
-    const onResize = () => setH(snapHeights()[snap])
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snap])
-
   useEffect(() => {
     if (ed.editMode) setTab('route')
   }, [ed.editMode])
 
+  // 視窗尺寸變動時重算位置
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const f = () => setTick((n) => n + 1)
+    window.addEventListener('resize', f)
+    return () => window.removeEventListener('resize', f)
+  }, [])
+
+  // Esc 收回
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, setOpen])
+
+  // 小球位置:靠左或靠右 + 高度,記在這台裝置
+  const [pos, setPos] = useState<BallPos>(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(BALL_POS_KEY) || 'null') as BallPos | null
+      if (s && (s.side === 'left' || s.side === 'right') && typeof s.y === 'number') return s
+    } catch {
+      /* 用預設 */
+    }
+    return { side: 'right', y: (typeof window !== 'undefined' ? window.innerHeight : 800) - 190 }
+  })
+  const [hintSeen, setHintSeen] = useState(() => {
+    try {
+      return localStorage.getItem(BALL_HINT_KEY) === '1'
+    } catch {
+      return true
+    }
+  })
+  const [dragXY, setDragXY] = useState<{ x: number; y: number } | null>(null)
+  const drag = useRef({ active: false, sx: 0, sy: 0, ox: 0, oy: 0, moved: 0 })
+  const justDragged = useRef(false)
+
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 375
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800
+  const clampY = (y: number) => Math.min(Math.max(y, HEADER_H + 12), vh - BALL - 16)
+  const sideX = (side: BallPos['side']) => (side === 'left' ? 12 : vw - BALL - 12)
+  const panelTop = HEADER_H + BALL + 24 // 展開時小球停在面板上方
+  const cur = dragXY ?? (open ? { x: sideX(pos.side), y: HEADER_H + 12 } : { x: sideX(pos.side), y: clampY(pos.y) })
+
   const onDown = (e: React.PointerEvent) => {
-    drag.current = { active: true, startY: e.clientY, startH: h, moved: 0, curH: h }
-    setAnimate(false)
+    drag.current = { active: true, sx: e.clientX, sy: e.clientY, ox: cur.x, oy: cur.y, moved: 0 }
     try {
       e.currentTarget.setPointerCapture?.(e.pointerId)
     } catch {
@@ -569,74 +599,129 @@ function MobileSheet({
     }
   }
   const onMove = (e: React.PointerEvent) => {
-    if (!drag.current.active) return
-    const dy = e.clientY - drag.current.startY
-    drag.current.moved = Math.max(drag.current.moved, Math.abs(dy))
-    const newH = Math.min(Math.max(drag.current.startH - dy, 110), Math.round(window.innerHeight * 0.92))
-    drag.current.curH = newH
-    setH(newH)
+    const d = drag.current
+    if (!d.active) return
+    const dx = e.clientX - d.sx
+    const dy = e.clientY - d.sy
+    d.moved = Math.max(d.moved, Math.abs(dx), Math.abs(dy))
+    if (open || d.moved < 6) return // 展開時小球固定,只能點
+    setDragXY({
+      x: Math.min(Math.max(d.ox + dx, 4), vw - BALL - 4),
+      y: Math.min(Math.max(d.oy + dy, HEADER_H + 4), vh - BALL - 4),
+    })
   }
   const onUp = () => {
-    if (!drag.current.active) return
-    drag.current.active = false
-    setAnimate(true)
-    if (drag.current.moved < 6) {
-      setSnap((s) => (s >= 2 ? 0 : s + 1))
+    const d = drag.current
+    if (!d.active) return
+    d.active = false
+    if (d.moved >= 6 && !open && dragXY) {
+      // 放開後吸附到最近的左右邊
+      const next: BallPos = { side: dragXY.x + BALL / 2 < vw / 2 ? 'left' : 'right', y: clampY(dragXY.y) }
+      setPos(next)
+      try {
+        localStorage.setItem(BALL_POS_KEY, JSON.stringify(next))
+      } catch {
+        /* 忽略 */
+      }
+      justDragged.current = true
+    }
+    setDragXY(null)
+  }
+  const onClick = () => {
+    if (justDragged.current) {
+      justDragged.current = false
       return
     }
-    const arr = snapHeights()
-    const cur = drag.current.curH
-    let ni = 0
-    let best = Infinity
-    arr.forEach((v, i) => {
-      const d = Math.abs(v - cur)
-      if (d < best) {
-        best = d
-        ni = i
+    if (!hintSeen) {
+      setHintSeen(true)
+      try {
+        localStorage.setItem(BALL_HINT_KEY, '1')
+      } catch {
+        /* 忽略 */
       }
-    })
-    setH(arr[ni])
-    setSnap(ni)
-  }
-
-  const openTab = (t: 'route' | 'feed') => {
-    setTab(t)
-    if (snap === 0) {
-      setAnimate(true)
-      setSnap(1)
     }
+    setOpen(!open)
   }
 
   return (
-    <div
-      className="fixed inset-x-0 bottom-0 z-[550] lg:hidden"
-      style={{ height: h, transition: animate ? 'height 0.32s cubic-bezier(0.16,1,0.3,1)' : 'none' }}
-    >
-      <div className="flex h-full flex-col rounded-t-3xl bg-paper-50 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] ring-1 ring-ink-900/10">
-        <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} className="shrink-0 cursor-grab touch-none pt-2 pb-1 active:cursor-grabbing">
-          <div className="mx-auto h-1.5 w-10 rounded-full bg-paper-300" />
-        </div>
+    <>
+      {/* 風獅爺大王小球 */}
+      <button
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        onClick={onClick}
+        aria-label={open ? '收起行程面板' : '打開行程面板'}
+        aria-expanded={open}
+        className={`fixed z-[580] rounded-full shadow-[0_6px_16px_rgba(42,35,32,0.35)] active:scale-95 lg:hidden ${open ? 'ring-4 ring-brick-600/70' : ''}`}
+        style={{
+          left: cur.x,
+          top: cur.y,
+          width: BALL,
+          height: BALL,
+          touchAction: 'none',
+          transition: dragXY ? 'transform 0.1s' : 'left 0.3s cubic-bezier(0.16,1,0.3,1), top 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.15s',
+        }}
+      >
+        <img src="/markers/lion-king.png" alt="" draggable={false} className="h-full w-full select-none rounded-full" />
+      </button>
 
-        {!ed.editMode && (
-          <div className="flex shrink-0 gap-2 px-4 pb-3">
+      {/* 第一次使用的小提示 */}
+      {!hintSeen && !open && !dragXY && (
+        <div
+          className="dz-sheet-in pointer-events-none fixed z-[579] whitespace-nowrap rounded-full bg-ink-900/90 px-3 py-1.5 text-xs font-bold text-white shadow-lg lg:hidden"
+          style={
+            pos.side === 'right'
+              ? { top: cur.y + BALL / 2 - 14, right: vw - cur.x + 8 }
+              : { top: cur.y + BALL / 2 - 14, left: cur.x + BALL + 8 }
+          }
+        >
+          點我看行程
+        </div>
+      )}
+
+      {/* 展開的行程面板 */}
+      {open && (
+        <div
+          role="dialog"
+          aria-label="我的行程"
+          className="dz-sheet-in fixed inset-x-3 bottom-3 z-[560] flex flex-col overflow-hidden rounded-3xl bg-paper-50 shadow-2xl ring-1 ring-ink-900/10 lg:hidden"
+          style={{ top: panelTop }}
+        >
+          <div className="flex shrink-0 items-center gap-2 p-3">
+            {ed.editMode ? (
+              <p className="flex-1 pl-2 text-sm font-black text-ink-900">編輯行程</p>
+            ) : (
+              <div className="flex flex-1 gap-2">
+                <button
+                  onClick={() => setTab('route')}
+                  aria-pressed={tab === 'route'}
+                  className={`inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-bold transition ${
+                    tab === 'route' ? 'bg-brick-600 text-white' : 'bg-paper-200 text-ink-500'
+                  }`}
+                >
+                  <Route className="h-4 w-4" strokeWidth={2} /> 本次行程
+                </button>
+                <button
+                  onClick={() => setTab('feed')}
+                  aria-pressed={tab === 'feed'}
+                  className={`inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-bold transition ${
+                    tab === 'feed' ? 'bg-ocean-600 text-white' : 'bg-paper-200 text-ink-500'
+                  }`}
+                >
+                  <Newspaper className="h-4 w-4" strokeWidth={2} /> 網路動態
+                </button>
+              </div>
+            )}
             <button
-              onClick={() => openTab('route')}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-bold transition ${
-                tab === 'route' ? 'bg-brick-600 text-white' : 'bg-paper-200 text-ink-500'
-              }`}
+              onClick={() => setOpen(false)}
+              aria-label="收起行程面板"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-500 transition hover:bg-paper-200"
             >
-              <Route className="h-4 w-4" strokeWidth={2} /> 本次行程
-            </button>
-            <button
-              onClick={() => openTab('feed')}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-bold transition ${
-                tab === 'feed' ? 'bg-ocean-600 text-white' : 'bg-paper-200 text-ink-500'
-              }`}
-            >
-              <Newspaper className="h-4 w-4" strokeWidth={2} /> 網路動態
+              <X className="h-5 w-5" strokeWidth={2.5} />
             </button>
           </div>
-        )}
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
           {tab === 'route' ? (
@@ -656,9 +741,10 @@ function MobileSheet({
           )}
         </div>
 
-        {ed.editMode && <EditorActions onDone={onDone} />}
-      </div>
-    </div>
+          {ed.editMode && <EditorActions onDone={onDone} />}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -818,7 +904,7 @@ export default function MapPage() {
   const [editMode, setEditMode] = useState(false)
   const [selected, setSelected] = useState<Stop | null>(null)
   const [filter, setFilter] = useState<Category | 'all'>('all')
-  const [sheetSnap, setSheetSnap] = useState(1)
+  const [panelOpen, setPanelOpen] = useState(false) // 手機:風獅爺小球展開的行程面板
   const [picker, setPicker] = useState<{ mode: 'add' | 'replace'; index: number } | null>(null)
   const [stayEdit, setStayEdit] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -842,15 +928,19 @@ export default function MapPage() {
   }, [])
   const addablePois = poiPool.filter((p) => !inPlan(p.id))
 
-  const selectStop = (s: Stop) => setSelected(s)
+  // 手機上從清單點站點:收起面板,讓旅客看到地圖與詳情卡(編輯中則不收)
+  const selectStop = (s: Stop) => {
+    setSelected(s)
+    if (!editMode) setPanelOpen(false)
+  }
   const collapseAll = () => {
     setSelected(null)
-    setSheetSnap(0)
+    setPanelOpen(false)
   }
 
   const enterEdit = () => {
     setEditMode(true)
-    setSheetSnap(2)
+    setPanelOpen(true)
     setSelected(null)
   }
 
@@ -1036,7 +1126,7 @@ export default function MapPage() {
 
           <button
             onClick={() => requestLocate(true)}
-            className="absolute bottom-[150px] right-3 z-[500] flex h-11 w-11 items-center justify-center rounded-full bg-white text-ocean-600 shadow-md ring-1 ring-ink-900/10 transition hover:bg-paper-100 active:scale-95 lg:bottom-[104px]"
+            className="absolute bottom-6 right-3 z-[500] flex h-11 w-11 items-center justify-center rounded-full bg-white text-ocean-600 shadow-md ring-1 ring-ink-900/10 transition hover:bg-paper-100 active:scale-95 lg:bottom-[104px]"
             aria-label="定位我的位置"
           >
             <Navigation className={`h-5 w-5 ${locating ? 'animate-pulse' : ''}`} strokeWidth={2} fill={userPos ? 'currentColor' : 'none'} />
@@ -1066,16 +1156,16 @@ export default function MapPage() {
         </aside>
       </div>
 
-      {/* 手機底部抽屜 */}
-      <MobileSheet
+      {/* 手機:風獅爺大王小球 + 行程面板 */}
+      <MobileFloat
         isAI={isAI}
         routeTitle={routeTitle}
         plan={plan}
         count={plan.length}
         totalLabel={totalLabel}
         ed={ed}
-        snap={sheetSnap}
-        setSnap={setSheetSnap}
+        open={panelOpen}
+        setOpen={setPanelOpen}
         onEdit={enterEdit}
         onSave={saveMyTrip}
         onDone={() => setEditMode(false)}
