@@ -1355,11 +1355,9 @@ function DetailCard({
               </span>
               <span className="text-ink-400">{stop.reviewCount} 則評論</span>
               <span className="text-ink-500">{categoryLabel[stop.category]}</span>
-              {inPlan && (
-                <span className="flex items-center gap-1 text-ink-400">
-                  <Clock className="h-3.5 w-3.5" strokeWidth={2} /> 約 {stop.stayMin} 分鐘
-                </span>
-              )}
+              <span className="flex items-center gap-1 text-ink-400">
+                <Clock className="h-3.5 w-3.5" strokeWidth={2} /> 約 {stop.stayMin} 分鐘
+              </span>
             </p>
 
             {!inPlan && (
