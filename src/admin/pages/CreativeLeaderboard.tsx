@@ -88,7 +88,13 @@ export default function CreativeLeaderboard() {
 
   return (
     <div>
-      <PageHeader title="管理創意排行榜" desc="旅客投稿後立即上架；發現不適當內容時，可查看全文與照片後下架。" />
+      <PageHeader
+        title="管理創意排行榜"
+        desc={<>
+          <span className="block">(1) 旅客投稿後立即上架</span>
+          <span className="block">(2) 發現不適當內容時，可查看全文與照片後下架</span>
+        </>}
+      />
 
       <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3" aria-label="投稿統計">
         {[
