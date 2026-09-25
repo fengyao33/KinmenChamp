@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Compass, Map, Sparkles } from 'lucide-react'
+import { ArrowRight, Compass, Map, Sparkles, Trophy } from 'lucide-react'
 import Logo from '../components/Logo'
 
 const STEPS = [
@@ -29,8 +29,15 @@ export default function Landing() {
   return (
     <div className="min-h-full bg-paper-100">
       {/* 頂列 */}
-      <header className="mx-auto flex max-w-6xl items-center px-6 py-5">
+      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <Logo className="h-9" clickable={false} />
+        <button
+          onClick={() => navigate('/leaderboard')}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-paper-300 bg-white/80 px-4 text-sm font-bold text-ink-700 shadow-sm backdrop-blur transition hover:border-brick-400 hover:text-brick-700"
+        >
+          <Trophy className="h-4 w-4 text-sun-500" strokeWidth={2.5} />
+          創意排行榜
+        </button>
       </header>
 
       {/* Hero */}

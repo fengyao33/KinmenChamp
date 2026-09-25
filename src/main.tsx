@@ -8,6 +8,7 @@ import Routes from './pages/Routes'
 import Form from './pages/Form'
 import Loading from './pages/Loading'
 import MapPage from './pages/MapPage'
+import Leaderboard from './pages/Leaderboard'
 import AdminLayout from './admin/AdminLayout'
 import AdminLogin from './admin/pages/Login'
 import Dashboard from './admin/pages/Dashboard'
@@ -25,6 +26,7 @@ const router = createBrowserRouter([
   { path: '/form', element: <Form /> },
   { path: '/loading', element: <Loading /> },
   { path: '/map', element: <MapPage /> },
+  { path: '/leaderboard', element: <Leaderboard /> },
   // 管理後台
   { path: '/admin/login', element: <AdminLogin /> },
   {
