@@ -10,6 +10,8 @@ export interface AdminStore {
   lat: number
   lng: number
   desc: string // 特色說明(人工維護)
+  stayMin: number // 預設停留時間(分鐘)
+  photos: string[] // 商家照片(data URL,最多 5 張)
   published: boolean // 上架
   rating: number
   reviewCount: number
@@ -75,6 +77,8 @@ function seed(): AdminDB {
           lat: s.lat,
           lng: s.lng,
           desc: s.desc,
+          stayMin: s.stayMin,
+          photos: [],
           published: true,
           rating: s.rating,
           reviewCount: s.reviewCount,
@@ -108,7 +112,20 @@ function seed(): AdminDB {
 export function loadDB(): AdminDB {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw) as AdminDB
+    if (raw) {
+      const db = JSON.parse(raw) as AdminDB
+      // 舊版瀏覽器資料尚未有停留時間與照片，讀取時補上預設值。
+      return {
+        ...db,
+        stores: db.stores.map((store) => ({
+          ...store,
+          stayMin: Number.isInteger(store.stayMin) && store.stayMin > 0
+            ? store.stayMin
+            : curatedRoutes.flatMap((route) => route.stops).find((stop) => stop.id === store.id)?.stayMin ?? 60,
+          photos: Array.isArray(store.photos) ? store.photos : [],
+        })),
+      }
+    }
   } catch {
     /* 本地儲存不可用時退回種子 */
   }
@@ -117,11 +134,12 @@ export function loadDB(): AdminDB {
   return s
 }
 
-export function saveDB(db: AdminDB) {
+export function saveDB(db: AdminDB): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(db))
+    return true
   } catch {
-    /* 忽略寫入失敗 */
+    return false
   }
 }
 
@@ -139,7 +157,7 @@ export const categoryLabel: Record<Category, string> = {
 }
 
 // 假的 Google Place 匯入候選(手動匯入時挑選)
-export const placeCandidates: Omit<AdminStore, 'published' | 'reviews' | 'desc'>[] = [
+export const placeCandidates: Omit<AdminStore, 'published' | 'reviews' | 'desc' | 'stayMin' | 'photos'>[] = [
   { id: 'gp-1', name: '陳景蘭洋樓', category: 'culture', lat: 24.4193, lng: 118.3897, rating: 4.6, reviewCount: 512 },
   { id: 'gp-2', name: '成功海灘', category: 'nature', lat: 24.4128, lng: 118.3969, rating: 4.5, reviewCount: 388 },
   { id: 'gp-3', name: '金水食堂', category: 'food', lat: 24.4088, lng: 118.3162, rating: 4.4, reviewCount: 267 },
