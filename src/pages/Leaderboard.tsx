@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Crown, Heart, ImagePlus, Image as ImageIcon, ShieldCheck, Trophy, Upload, X } from 'lucide-react'
+import { Crown, Heart, ImagePlus, Image as ImageIcon, Lock, ShieldCheck, Trophy, Upload, X } from 'lucide-react'
 import Header from '../components/Header'
 import {
   compressImage,
   loadEntries,
   loadVoted,
+  normalizePhone,
   rankByVotes,
   saveEntries,
   saveVoted,
@@ -151,6 +152,7 @@ function UploadSheet({
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
   const [author, setAuthor] = useState('')
+  const [phone, setPhone] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
   const [consent, setConsent] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -160,6 +162,7 @@ function UploadSheet({
   const errors = {
     title: !title.trim() ? '請填寫遊程名稱' : '',
     desc: !desc.trim() ? '請寫一段創意說明' : '',
+    phone: !phone.trim() ? '請填寫聯絡電話' : !normalizePhone(phone) ? '電話格式不正確,例如 0912345678' : '',
     photos: photos.length === 0 ? '請至少放一張照片' : '',
     consent: !consent ? '請勾選同意個人資料蒐集告知事項' : '',
   }
@@ -189,6 +192,7 @@ function UploadSheet({
   }
 
   const submit = () => {
+    if (!consent) return
     if (hasError) {
       setShowErr(true)
       return
@@ -198,6 +202,7 @@ function UploadSheet({
       title: title.trim(),
       desc: desc.trim(),
       author: author.trim() || '匿名旅人',
+      phone: normalizePhone(phone) ?? undefined,
       photos,
       votes: 0,
       createdAt: Date.now(),
@@ -214,14 +219,22 @@ function UploadSheet({
       title="上傳我的創意路線"
       onClose={onClose}
       footer={
-        <button
-          onClick={submit}
-          disabled={busy}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brick-600 text-base font-bold text-white transition hover:bg-brick-700 disabled:opacity-60"
-        >
-          <Upload className="h-5 w-5" strokeWidth={2.5} />
-          {busy ? '照片處理中' : '送出參賽'}
-        </button>
+        <>
+          {!consent && (
+            <p id="lb-consent-hint" className="mb-2.5 text-center text-xs font-medium text-ink-500">
+              請先勾選同意個人資料蒐集告知事項,才能送出
+            </p>
+          )}
+          <button
+            onClick={submit}
+            disabled={busy || !consent}
+            aria-describedby={!consent ? 'lb-consent-hint' : undefined}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brick-600 text-base font-bold text-white transition hover:bg-brick-700 disabled:cursor-not-allowed disabled:bg-paper-300 disabled:text-ink-500 disabled:hover:bg-paper-300"
+          >
+            <Upload className="h-5 w-5" strokeWidth={2.5} />
+            {busy ? '照片處理中' : '送出參賽'}
+          </button>
+        </>
       }
     >
       <div className="space-y-5">
@@ -279,6 +292,31 @@ function UploadSheet({
             placeholder="排行榜上顯示的名字"
             className={`${inputCls} min-h-12 border-paper-300`}
           />
+        </div>
+
+        {/* 聯絡電話(僅官方可見) */}
+        <div>
+          <label htmlFor="lb-phone" className="mb-1.5 block text-sm font-bold text-ink-900">
+            聯絡電話 <span className="text-brick-600">*</span>
+          </label>
+          <input
+            id="lb-phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            maxLength={20}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="0912345678"
+            aria-invalid={showErr && !!errors.phone}
+            aria-describedby="lb-phone-note"
+            className={`${inputCls} min-h-12 ${showErr && errors.phone ? 'border-red-400' : 'border-paper-300'}`}
+          />
+          <p id="lb-phone-note" className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500">
+            <Lock className="h-3.5 w-3.5 shrink-0 text-ocean-600" strokeWidth={2.5} />
+            只給島轉官方人員聯繫活動用,不會公開顯示
+          </p>
+          {showErr && errors.phone && <p className="mt-1 text-xs font-medium text-red-600">{errors.phone}</p>}
         </div>
 
         {/* 照片 */}
