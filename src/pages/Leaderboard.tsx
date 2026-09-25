@@ -7,13 +7,14 @@ import {
   compressImage,
   loadEntries,
   loadVoted,
-  normalizePhone,
   rankByVotes,
   saveEntries,
   saveVoted,
   uid,
   type CreativeEntry,
 } from '../data/leaderboard'
+import { normalizePhone, phoneCountries, phoneExample } from '../data/phone'
+import type { CountryCode } from 'libphonenumber-js/max'
 import { PRIVACY_CONSENT_LABEL, PRIVACY_SECTIONS, PRIVACY_TITLE } from '../content/privacyTerms'
 
 const MAX_PHOTOS = 5
@@ -156,6 +157,7 @@ export function UploadSheet({
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
   const [author, setAuthor] = useState('')
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>('TW')
   const [phone, setPhone] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
   const [consent, setConsent] = useState(false)
@@ -166,7 +168,7 @@ export function UploadSheet({
   const errors = {
     title: !title.trim() ? '請填寫遊程名稱' : '',
     desc: !desc.trim() ? '請寫一段創意說明' : '',
-    phone: !phone.trim() ? '請填寫聯絡電話' : !normalizePhone(phone) ? '電話格式不正確,例如 0912345678' : '',
+    phone: !phone.trim() ? '請填寫聯絡電話' : !normalizePhone(phone, phoneCountry) ? `電話格式不正確，請依所選地區輸入，例如 ${phoneExample(phoneCountry)}` : '',
     photos: photos.length === 0 ? '請至少放一張照片' : '',
     consent: !consent ? '請勾選同意個人資料蒐集告知事項' : '',
   }
@@ -206,7 +208,7 @@ export function UploadSheet({
       title: title.trim(),
       desc: desc.trim(),
       author: author.trim() || '匿名旅人',
-      phone: normalizePhone(phone) ?? undefined,
+      phone: normalizePhone(phone, phoneCountry) ?? undefined,
       photos,
       votes: 0,
       createdAt: Date.now(),
@@ -310,24 +312,35 @@ export function UploadSheet({
           <label htmlFor="lb-phone" className="mb-1.5 block text-sm font-bold text-ink-900">
             聯絡電話 <span className="text-brick-600">*</span>
           </label>
-          <input
-            id="lb-phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={phone}
-            maxLength={20}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="0912345678"
-            aria-invalid={showErr && !!errors.phone}
-            aria-describedby="lb-phone-note"
-            className={`${inputCls} min-h-12 ${showErr && errors.phone ? 'border-red-400' : 'border-paper-300'}`}
-          />
+          <div className="flex gap-2">
+            <select
+              aria-label="電話國家或地區碼"
+              value={phoneCountry}
+              onChange={(e) => { setPhoneCountry(e.target.value as CountryCode); setPhone('') }}
+              className="min-h-12 w-[42%] min-w-0 rounded-xl border border-paper-300 bg-white px-2 text-sm text-ink-900 outline-none focus:border-brick-400 focus:ring-4 focus:ring-brick-600/10 sm:w-[38%]"
+            >
+              {phoneCountries.map(({ country, label }) => <option key={country} value={country}>{label}</option>)}
+            </select>
+            <input
+              id="lb-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              value={phone}
+              maxLength={30}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={phoneExample(phoneCountry)}
+              aria-invalid={showErr && !!errors.phone}
+              aria-describedby={`lb-phone-example lb-phone-note${showErr && errors.phone ? ' lb-phone-error' : ''}`}
+              className={`${inputCls} min-h-12 min-w-0 flex-1 ${showErr && errors.phone ? 'border-red-400' : 'border-paper-300'}`}
+            />
+          </div>
+          <p id="lb-phone-example" className="mt-1.5 text-xs text-ink-700">當地號碼範例：{phoneExample(phoneCountry)}</p>
           <p id="lb-phone-note" className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500">
             <Lock className="h-3.5 w-3.5 shrink-0 text-ocean-600" strokeWidth={2.5} />
             只給島轉官方人員聯繫活動用,不會公開顯示
           </p>
-          {showErr && errors.phone && <p className="mt-1 text-xs font-medium text-red-600">{errors.phone}</p>}
+          {showErr && errors.phone && <p id="lb-phone-error" role="alert" className="mt-1 text-xs font-medium text-red-600">{errors.phone}</p>}
         </div>
 
         {/* 照片 */}

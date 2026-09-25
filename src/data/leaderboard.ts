@@ -5,7 +5,7 @@ export interface CreativeEntry {
   title: string // 遊程名稱
   desc: string // 創意說明
   author: string // 暱稱
-  phone?: string // 聯絡電話(僅官方聯繫用,前台不顯示)
+  phone?: string // 聯絡電話(E.164 國際格式,僅官方聯繫用,前台不顯示)
   photos: string[] // 照片(壓縮後 dataURL),第一張為封面
   votes: number
   createdAt: number
@@ -146,11 +146,3 @@ export function compressImage(file: File, max = 1280, quality = 0.78): Promise<s
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
-
-/** 電話正規化:去掉空白、橫線、括號,+886 轉成 0;格式不對回傳 null */
-export function normalizePhone(raw: string): string | null {
-  let p = raw.replace(/[\s\-()]/g, '')
-  if (p.startsWith('+886')) p = '0' + p.slice(4)
-  else if (p.startsWith('886')) p = '0' + p.slice(3)
-  return /^0\d{8,9}$/.test(p) ? p : null
-}
