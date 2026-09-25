@@ -90,10 +90,6 @@ export default function CreativeLeaderboard() {
     <div>
       <PageHeader title="管理創意排行榜" desc="旅客投稿後立即上架；發現不適當內容時，可查看全文與照片後下架。" />
 
-      <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-ink-700" role="note">
-        <strong className="text-ink-900">前端展示：</strong>目前投稿與下架紀錄只存在這台裝置的瀏覽器。正式跨裝置下架與旅客端同步，需串接後端 API。
-      </div>
-
       <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3" aria-label="投稿統計">
         {[
           ['全部投稿', entries.length],
