@@ -24,7 +24,9 @@ export interface Offer {
   storeId: string
   kind: OfferKind // 優惠 / 活動
   title: string
-  published: boolean // 上架
+  published: boolean // 手動啟用；設定時間區間時，仍須符合排程才顯示為上架
+  startAt?: string // 排程開始時間(ISO 8601)
+  endAt?: string // 排程結束時間(ISO 8601)
 }
 
 export interface AdminRoute {
