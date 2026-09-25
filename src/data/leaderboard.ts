@@ -89,6 +89,11 @@ export function saveEntries(list: CreativeEntry[]): boolean {
   }
 }
 
+/** 新增一則投稿到最前面(地圖頁快速上傳用),回傳是否成功 */
+export function submitEntry(e: CreativeEntry): boolean {
+  return saveEntries([e, ...loadEntries()])
+}
+
 export function loadVoted(): string[] {
   try {
     const raw = localStorage.getItem(VOTED_KEY)

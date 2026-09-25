@@ -28,11 +28,14 @@ import {
   Star,
   Trash2,
   Trees,
+  Trophy,
   UtensilsCrossed,
   X,
   type LucideIcon,
 } from 'lucide-react'
 import Logo from '../components/Logo'
+import { UploadSheet } from './Leaderboard'
+import { submitEntry } from '../data/leaderboard'
 import {
   categoryLabel,
   curatedRoutes,
@@ -766,6 +769,7 @@ export default function MapPage() {
   const [picker, setPicker] = useState<{ mode: 'add' | 'replace'; index: number } | null>(null)
   const [stayEdit, setStayEdit] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const toastTimer = useRef<number | null>(null)
   const showToast = (msg: string) => {
@@ -890,13 +894,22 @@ export default function MapPage() {
       {/* 頂列 */}
       <header className="z-30 flex h-16 shrink-0 items-center justify-between border-b border-ink-900/5 bg-paper-50 px-4 sm:px-6">
         <Logo className="h-9" />
-        <button
-          onClick={() => navigate('/choose')}
-          className="inline-flex items-center gap-1.5 rounded-full border border-paper-300 px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brick-400 hover:text-brick-700"
-        >
-          <RotateCcw className="h-4 w-4" strokeWidth={2} />
-          重新規劃
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setUploadOpen(true)}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-paper-300 px-3 text-sm font-medium text-ink-700 transition hover:border-brick-400 hover:text-brick-700 sm:px-4"
+          >
+            <Trophy className="h-4 w-4 text-sun-500" strokeWidth={2.5} />
+            上傳排行榜
+          </button>
+          <button
+            onClick={() => navigate('/choose')}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-paper-300 px-3 text-sm font-medium text-ink-700 transition hover:border-brick-400 hover:text-brick-700 sm:px-4"
+          >
+            <RotateCcw className="h-4 w-4" strokeWidth={2} />
+            重新規劃
+          </button>
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -1028,6 +1041,23 @@ export default function MapPage() {
           stop={stayStop}
           onSave={(mn) => { setStay(stayEdit, mn); setStayEdit(null) }}
           onClose={() => setStayEdit(null)}
+        />
+      )}
+
+      {/* 快速上傳到創意排行榜(不離開地圖,行程不會不見) */}
+      {uploadOpen && (
+        <UploadSheet
+          hint="可以先截圖你的遊程畫面,當作照片上傳"
+          notify={showToast}
+          onClose={() => setUploadOpen(false)}
+          onSubmit={(entry) => {
+            if (!submitEntry(entry)) {
+              showToast('照片容量太大,請減少張數後再試')
+              return false
+            }
+            showToast('已上傳到創意排行榜')
+            return true
+          }}
         />
       )}
 

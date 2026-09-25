@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Crown, Heart, ImagePlus, Image as ImageIcon, Lock, ShieldCheck, Trophy, Upload, X } from 'lucide-react'
+import { Camera, Crown, Heart, ImagePlus, Image as ImageIcon, Lock, ShieldCheck, Trophy, Upload, X } from 'lucide-react'
 import Header from '../components/Header'
 import {
   compressImage,
@@ -139,15 +139,17 @@ function Sheet({
   )
 }
 
-/* 上傳創意路線 */
-function UploadSheet({
+/* 上傳創意路線(排行榜頁、地圖頁共用) */
+export function UploadSheet({
   onClose,
   onSubmit,
   notify,
+  hint,
 }: {
   onClose: () => void
   onSubmit: (e: CreativeEntry) => boolean
   notify: (m: string) => void
+  hint?: string
 }) {
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
@@ -238,6 +240,13 @@ function UploadSheet({
       }
     >
       <div className="space-y-5">
+        {hint && (
+          <p className="flex items-start gap-2 rounded-2xl bg-ocean-50 p-3.5 text-sm leading-relaxed text-ocean-700">
+            <Camera className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.5} />
+            {hint}
+          </p>
+        )}
+
         {/* 遊程名稱 */}
         <div>
           <div className="mb-1.5 flex items-baseline justify-between">
