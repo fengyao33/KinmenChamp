@@ -516,9 +516,11 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-paper-100">
       <Header showBack backTo="/" />
 
-      <main className="mx-auto max-w-3xl px-4 pb-16 pt-8 sm:px-6 sm:pt-12">
+      <main className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
+        {/* 吸頂區:標題 + 上傳 + 排序,捲動時固定在頂列下方 */}
+        <div className="sticky top-16 z-20 -mx-4 border-b border-ink-900/5 bg-paper-100 px-4 pb-4 pt-6 sm:-mx-6 sm:px-6 sm:pt-10">
         {/* 標題 */}
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
           <div>
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sun-500 text-white shadow-md shadow-sun-500/30">
@@ -538,7 +540,7 @@ export default function Leaderboard() {
         </div>
 
         {/* 排序 */}
-        <div className="mt-8 grid max-w-xs grid-cols-2 gap-1 rounded-2xl bg-paper-200 p-1" role="group" aria-label="排序方式">
+        <div className="mt-5 grid max-w-xs grid-cols-2 gap-1 rounded-2xl bg-paper-200 p-1 sm:mt-6" role="group" aria-label="排序方式">
           {([
             { key: 'hot', label: '票數最高' },
             { key: 'new', label: '最新上傳' },
@@ -552,6 +554,7 @@ export default function Leaderboard() {
               {t.label}
             </button>
           ))}
+        </div>
         </div>
 
         {/* 排行清單 */}
