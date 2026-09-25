@@ -618,7 +618,14 @@ export default function Leaderboard() {
         <p className="mt-6 text-center text-xs text-ink-400">每則路線每人可投一票,再按一次可收回</p>
       </main>
 
-      {uploadOpen && <UploadSheet onClose={() => setUploadOpen(false)} onSubmit={addEntry} notify={notify} />}
+      {uploadOpen && (
+        <UploadSheet
+          hint="可以先截圖你的遊程畫面,當作照片上傳"
+          onClose={() => setUploadOpen(false)}
+          onSubmit={addEntry}
+          notify={notify}
+        />
+      )}
       {detail && (
         <DetailSheet
           entry={detail}
