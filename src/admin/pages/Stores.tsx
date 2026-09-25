@@ -266,7 +266,7 @@ export default function Stores() {
                 {photoBusy ? <Loader2 className="h-4 w-4 dz-spin-fast" strokeWidth={2} /> : <Plus className="h-4 w-4" strokeWidth={2} />}
                 {photoBusy ? '照片處理中' : '新增照片'}
               </Btn>
-              <p className="mt-1.5 text-xs text-ink-500">最多 5 張，支援 JPG、PNG、WebP，單張 15MB 以內。照片會保存在此瀏覽器。</p>
+              <p className="mt-1.5 text-xs text-ink-500">最多 5 張，支援 JPG、PNG、WebP，單張 15MB 以內。</p>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-paper-100 p-3">
               <p className="text-sm font-bold text-ink-800">是否上架?</p>
