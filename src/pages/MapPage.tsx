@@ -1126,7 +1126,7 @@ export default function MapPage() {
 
           <button
             onClick={() => requestLocate(true)}
-            className="absolute bottom-6 right-3 z-[500] flex h-11 w-11 items-center justify-center rounded-full bg-white text-ocean-600 shadow-md ring-1 ring-ink-900/10 transition hover:bg-paper-100 active:scale-95 lg:bottom-[104px]"
+            className="absolute bottom-10 right-3 z-[500] flex h-11 w-11 items-center justify-center rounded-full bg-white text-ocean-600 shadow-md ring-1 ring-ink-900/10 transition hover:bg-paper-100 active:scale-95 lg:bottom-[104px]"
             aria-label="定位我的位置"
           >
             <Navigation className={`h-5 w-5 ${locating ? 'animate-pulse' : ''}`} strokeWidth={2} fill={userPos ? 'currentColor' : 'none'} />
