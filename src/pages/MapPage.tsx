@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
@@ -48,10 +48,9 @@ import {
 const KINMEN_CENTER: [number, number] = [24.4326, 118.3185]
 
 /* ---------- 交通方式與移動時間 ---------- */
+// 路線演算法一次只能用一種交通工具,所以交通方式是「整趟行程」一個設定
 type Transport = 'walk' | 'scooter' | 'drive'
-interface PlanStop extends Stop {
-  transportToNext: Transport
-}
+type PlanStop = Stop
 const TRANSPORT_LIST: { key: Transport; label: string; icon: LucideIcon; speed: number }[] = [
   { key: 'walk', label: '步行', icon: Footprints, speed: 4.5 },
   { key: 'scooter', label: '機車', icon: Scooter, speed: 30 },
@@ -85,6 +84,7 @@ interface SavedTrip {
   key: string // 'ai' 或 'island:<routeId>'
   plan: PlanStop[]
   original: PlanStop[] // 推薦的原始行程,用來「恢復成推薦行程」
+  transport?: Transport // 整趟行程的交通方式
 }
 function loadTrip(): SavedTrip | null {
   try {
@@ -101,13 +101,14 @@ function saveTrip(t: SavedTrip) {
     /* 忽略寫入失敗 */
   }
 }
-const toPlanStop = (s: Stop): PlanStop => ({ ...s, transportToNext: transportFromLeg(s.legToNext) })
 function routeFromKey(key: string) {
   const id = key.startsWith('island:') ? key.slice(7) : ''
   return curatedRoutes.find((r) => r.id === id) ?? curatedRoutes[0]
 }
+// 推薦路線預設的交通方式(取第一段的說明)
+const defaultTransport = (key: string) => transportFromLeg(routeFromKey(key).stops[0]?.legToNext)
 const tripUrl = (key: string) => (key === 'ai' ? '/map?type=ai' : `/map?type=island&route=${key.slice(7)}`)
-const planSignature = (p: PlanStop[]) => p.map((s) => `${s.id}:${s.stayMin}:${s.transportToNext}`).join('|')
+const planSignature = (p: PlanStop[]) => p.map((s) => `${s.id}:${s.stayMin}`).join('|')
 
 function numberIcon(n: number, active: boolean) {
   return L.divIcon({
@@ -185,7 +186,7 @@ interface EditorApi {
   selectedId?: string
   onSelect: (s: Stop) => void
   onMove: (from: number, to: number) => void
-  onSetTransport: (index: number, mode: Transport) => void
+  transport: Transport // 整趟行程的交通方式(只在完成頁選)
   onEditStay: (index: number) => void
   onReplace: (index: number) => void
   onRemove: (index: number) => void
@@ -247,8 +248,8 @@ function Itinerary({ plan, ed }: { plan: PlanStop[]; ed: EditorApi }) {
   return (
     <ol>
       {plan.map((s, i) => {
-        const nextMin = i < plan.length - 1 ? legMinutes(s, plan[i + 1], s.transportToNext) : 0
-        const tm = transportMeta(s.transportToNext)
+        const nextMin = i < plan.length - 1 ? legMinutes(s, plan[i + 1], ed.transport) : 0
+        const tm = transportMeta(ed.transport)
         return (
           <li
             key={s.id}
@@ -292,38 +293,12 @@ function Itinerary({ plan, ed }: { plan: PlanStop[]; ed: EditorApi }) {
                 停留約 {s.stayMin} 分鐘
               </p>
 
-              {/* 到下一站:唯讀顯示 / 編輯可選交通方式 */}
+              {/* 到下一站:依整趟交通方式計算 */}
               {i < plan.length - 1 && (
-                ed.editMode ? (
-                  <div className="mt-2 rounded-xl bg-paper-100 p-2">
-                    <div className="flex items-center gap-1">
-                      {TRANSPORT_LIST.map((t) => {
-                        const on = t.key === s.transportToNext
-                        const Icon = t.icon
-                        return (
-                          <button
-                            key={t.key}
-                            onClick={() => ed.onSetTransport(i, t.key)}
-                            aria-pressed={on}
-                            aria-label={`${t.label}到下一站`}
-                            className={`inline-flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-bold transition ${
-                              on ? 'bg-ocean-600 text-white' : 'bg-white text-ink-500 hover:text-ocean-700'
-                            }`}
-                          >
-                            <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-                            {t.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <p className="mt-1.5 text-center text-[11px] font-medium text-ocean-600">約 {nextMin} 分鐘到下一站</p>
-                  </div>
-                ) : (
-                  <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-ocean-600">
-                    <tm.icon className="h-3.5 w-3.5" strokeWidth={2} />
-                    {tm.label} {nextMin} 分鐘到下一站
-                  </p>
-                )
+                <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-ocean-600">
+                  <tm.icon className="h-3.5 w-3.5" strokeWidth={2} />
+                  {tm.label} {nextMin} 分鐘到下一站
+                </p>
               )}
 
               {/* 在此站之後加入新景點 */}
@@ -371,18 +346,6 @@ function Itinerary({ plan, ed }: { plan: PlanStop[]; ed: EditorApi }) {
           </li>
         )
       })}
-
-      {/* 最後一站之後也能加入 */}
-      {ed.editMode && (
-        <li className="pl-8">
-          <button
-            onClick={() => ed.onAddAt(plan.length)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-paper-300 py-2 text-xs font-bold text-ink-500 transition hover:border-brick-400 hover:text-brick-600"
-          >
-            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} /> 加入地點
-          </button>
-        </li>
-      )}
     </ol>
   )
 }
@@ -436,6 +399,38 @@ function EditorActions({ onDone }: { onDone: () => void }) {
       >
         <Check className="h-4 w-4" strokeWidth={2.5} /> 完成編輯
       </button>
+    </div>
+  )
+}
+
+/* 完成頁:整趟行程的交通方式(路線演算法一次只用一種) */
+function TransportPicker({ value, onChange }: { value: Transport; onChange: (t: Transport) => void }) {
+  const labelId = useId()
+  return (
+    <div className="mt-5">
+      <p id={labelId} className="mb-2 text-xs font-bold text-ink-500">
+        交通方式
+      </p>
+      <div role="radiogroup" aria-labelledby={labelId} className="grid grid-cols-3 gap-1 rounded-2xl bg-paper-200 p-1">
+        {TRANSPORT_LIST.map((t) => {
+          const on = t.key === value
+          const Icon = t.icon
+          return (
+            <button
+              key={t.key}
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChange(t.key)}
+              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-bold transition ${
+                on ? 'bg-ocean-600 text-white shadow-sm' : 'text-ink-500 hover:text-ocean-700'
+              }`}
+            >
+              <Icon className="h-4 w-4" strokeWidth={2} />
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -543,8 +538,10 @@ function MobileSheet({
   onSave,
   onDone,
   saveNote,
+  transportSlot,
 }: {
   saveNote?: React.ReactNode
+  transportSlot?: React.ReactNode
   isAI: boolean
   routeTitle: string
   plan: PlanStop[]
@@ -665,6 +662,7 @@ function MobileSheet({
             <>
               <div className="pt-1">
                 <RouteHeader isAI={isAI} count={count} totalLabel={totalLabel} title={routeTitle} editMode={ed.editMode} onEdit={onEdit} />
+                {!ed.editMode && transportSlot}
               </div>
               <div className="mt-4">
                 <Itinerary plan={plan} ed={ed} />
@@ -814,8 +812,8 @@ export default function MapPage() {
   const [trip] = useState<SavedTrip>(() => {
     const saved = loadTrip()
     if (!freshTrip && saved) return saved
-    const original = routeFromKey(urlKey).stops.map(toPlanStop)
-    return { key: urlKey, plan: original, original }
+    const original = routeFromKey(urlKey).stops
+    return { key: urlKey, plan: original, original, transport: defaultTransport(urlKey) }
   })
   const isAI = trip.key === 'ai'
   const route = routeFromKey(trip.key)
@@ -824,9 +822,10 @@ export default function MapPage() {
 
   // 可編輯的行程本地狀態
   const [plan, setPlan] = useState<PlanStop[]>(trip.plan)
+  const [transport, setTransport] = useState<Transport>(trip.transport ?? defaultTransport(trip.key))
   useEffect(() => {
-    saveTrip({ key: trip.key, plan, original })
-  }, [plan, trip.key, original])
+    saveTrip({ key: trip.key, plan, original, transport })
+  }, [plan, trip.key, original, transport])
   // 用完「新遊程」標記就清掉,並讓網址對上實際顯示的行程(避免重新整理又被當成新遊程)
   useEffect(() => {
     if (freshTrip || trip.key !== urlKey) navigate(tripUrl(trip.key), { replace: true, state: null })
@@ -882,8 +881,6 @@ export default function MapPage() {
       n.splice(to, 0, m)
       return n
     })
-  const setTransport = (index: number, mode: Transport) =>
-    setPlan((p) => p.map((s, i) => (i === index ? { ...s, transportToNext: mode } : s)))
   const setStay = (index: number, mn: number) =>
     setPlan((p) => p.map((s, i) => (i === index ? { ...s, stayMin: mn } : s)))
   const removeAt = (index: number) => {
@@ -892,18 +889,17 @@ export default function MapPage() {
   }
   const pickPoi = (poi: Stop) => {
     if (!picker) return
-    const ps: PlanStop = { ...poi, transportToNext: 'walk' }
     setPlan((p) => {
       const n = [...p]
-      if (picker.mode === 'replace') n[picker.index] = { ...ps, transportToNext: n[picker.index].transportToNext }
-      else n.splice(picker.index, 0, ps)
+      if (picker.mode === 'replace') n[picker.index] = poi
+      else n.splice(picker.index, 0, poi)
       return n
     })
     showToast(picker.mode === 'replace' ? '已更換地點' : '已加入地點')
     setPicker(null)
   }
   const addFromMap = (poi: Stop) => {
-    setPlan((p) => [...p, { ...poi, transportToNext: 'walk' }])
+    setPlan((p) => [...p, poi])
     setSelected(null)
     showToast('已加入行程')
   }
@@ -921,7 +917,7 @@ export default function MapPage() {
     selectedId: selected?.id,
     onSelect: selectStop,
     onMove: movePlan,
-    onSetTransport: setTransport,
+    transport,
     onEditStay: (i) => setStayEdit(i),
     onReplace: (i) => setPicker({ mode: 'replace', index: i }),
     onRemove: removeAt,
@@ -954,9 +950,9 @@ export default function MapPage() {
   const routePositions = plan.map((s) => [s.lat, s.lng] as [number, number])
   const totalMin = useMemo(() => {
     const stay = plan.reduce((a, s) => a + s.stayMin, 0)
-    const travel = plan.slice(0, -1).reduce((a, s, i) => a + legMinutes(s, plan[i + 1], s.transportToNext), 0)
+    const travel = plan.slice(0, -1).reduce((a, s, i) => a + legMinutes(s, plan[i + 1], transport), 0)
     return stay + travel
-  }, [plan])
+  }, [plan, transport])
   const totalLabel = totalMin >= 60 ? `約 ${(totalMin / 60).toFixed(1).replace(/\.0$/, '')} 小時` : `約 ${totalMin} 分鐘`
   const showPoi = (cat: Category) => filter === 'all' || filter === cat
 
@@ -990,6 +986,7 @@ export default function MapPage() {
         <aside className="hidden w-80 shrink-0 flex-col border-r border-ink-900/5 bg-paper-50 lg:flex">
           <div className="min-h-0 flex-1 overflow-y-auto p-6">
             <RouteHeader isAI={isAI} count={plan.length} totalLabel={totalLabel} title={routeTitle} editMode={editMode} onEdit={enterEdit} />
+            {!editMode && <TransportPicker value={transport} onChange={setTransport} />}
             <div className="mt-6">
               <Itinerary plan={plan} ed={ed} />
             </div>
@@ -1098,6 +1095,7 @@ export default function MapPage() {
         onSave={saveMyTrip}
         onDone={() => setEditMode(false)}
         saveNote={isModified ? <TripSaveNote onRestore={() => setConfirmRestore(true)} /> : null}
+        transportSlot={<TransportPicker value={transport} onChange={setTransport} />}
       />
 
       {/* 選景點:加入 / 更換 */}
