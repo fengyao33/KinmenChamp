@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import {
@@ -78,6 +78,36 @@ function transportFromLeg(text?: string): Transport {
   if (text.includes('機車') || text.includes('單車') || text.includes('腳踏')) return 'scooter'
   return 'walk'
 }
+
+/* ---------- 目前行程:存在這台裝置 ---------- */
+const TRIP_KEY = 'dz_current_trip'
+interface SavedTrip {
+  key: string // 'ai' 或 'island:<routeId>'
+  plan: PlanStop[]
+  original: PlanStop[] // 推薦的原始行程,用來「恢復成推薦行程」
+}
+function loadTrip(): SavedTrip | null {
+  try {
+    const raw = localStorage.getItem(TRIP_KEY)
+    return raw ? (JSON.parse(raw) as SavedTrip) : null
+  } catch {
+    return null
+  }
+}
+function saveTrip(t: SavedTrip) {
+  try {
+    localStorage.setItem(TRIP_KEY, JSON.stringify(t))
+  } catch {
+    /* 忽略寫入失敗 */
+  }
+}
+const toPlanStop = (s: Stop): PlanStop => ({ ...s, transportToNext: transportFromLeg(s.legToNext) })
+function routeFromKey(key: string) {
+  const id = key.startsWith('island:') ? key.slice(7) : ''
+  return curatedRoutes.find((r) => r.id === id) ?? curatedRoutes[0]
+}
+const tripUrl = (key: string) => (key === 'ai' ? '/map?type=ai' : `/map?type=island&route=${key.slice(7)}`)
+const planSignature = (p: PlanStop[]) => p.map((s) => `${s.id}:${s.stayMin}:${s.transportToNext}`).join('|')
 
 function numberIcon(n: number, active: boolean) {
   return L.divIcon({
@@ -410,6 +440,25 @@ function EditorActions({ onDone }: { onDone: () => void }) {
   )
 }
 
+/* 行程改過時顯示:已自動存檔 + 恢復成推薦行程 */
+function TripSaveNote({ onRestore }: { onRestore: () => void }) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-1 rounded-2xl bg-paper-100 py-1.5 pl-3.5 pr-1.5 text-xs text-ink-500">
+      <span className="flex items-center gap-1.5">
+        <Check className="h-3.5 w-3.5 text-ocean-600" strokeWidth={2.5} />
+        已自動存在這台裝置
+      </span>
+      <button
+        onClick={onRestore}
+        className="inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 font-bold text-brick-700 transition hover:bg-brick-50"
+      >
+        <RotateCcw className="h-3.5 w-3.5" strokeWidth={2.5} />
+        恢復成推薦行程
+      </button>
+    </div>
+  )
+}
+
 /* 檢視(完成)模式:儲存為我的行程 */
 function SaveTripButton({ onSave }: { onSave: () => void }) {
   return (
@@ -493,7 +542,9 @@ function MobileSheet({
   onEdit,
   onSave,
   onDone,
+  saveNote,
 }: {
+  saveNote?: React.ReactNode
   isAI: boolean
   routeTitle: string
   plan: PlanStop[]
@@ -618,6 +669,7 @@ function MobileSheet({
               <div className="mt-4">
                 <Itinerary plan={plan} ed={ed} />
               </div>
+              {saveNote}
               {!ed.editMode && <SaveTripButton onSave={onSave} />}
             </>
           ) : (
@@ -753,15 +805,36 @@ function StayModal({ stop, onSave, onClose }: { stop: PlanStop; onSave: (min: nu
 
 export default function MapPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [params] = useSearchParams()
-  const isAI = params.get('type') === 'ai'
-  const route = curatedRoutes.find((r) => r.id === params.get('route')) ?? curatedRoutes[0]
+
+  // 目前行程:自動存在這台裝置。只有「選路線 / AI 生成」產生新遊程時才覆蓋,其他方式回來都還原存檔。
+  const freshTrip = !!(location.state as { freshTrip?: boolean } | null)?.freshTrip
+  const urlKey = params.get('type') === 'ai' ? 'ai' : `island:${params.get('route') ?? curatedRoutes[0].id}`
+  const [trip] = useState<SavedTrip>(() => {
+    const saved = loadTrip()
+    if (!freshTrip && saved) return saved
+    const original = routeFromKey(urlKey).stops.map(toPlanStop)
+    return { key: urlKey, plan: original, original }
+  })
+  const isAI = trip.key === 'ai'
+  const route = routeFromKey(trip.key)
   const routeTitle = isAI ? '為你生成的行程' : route.title
+  const original = trip.original
 
   // 可編輯的行程本地狀態
-  const [plan, setPlan] = useState<PlanStop[]>(() =>
-    route.stops.map((s) => ({ ...s, transportToNext: transportFromLeg(s.legToNext) })),
-  )
+  const [plan, setPlan] = useState<PlanStop[]>(trip.plan)
+  useEffect(() => {
+    saveTrip({ key: trip.key, plan, original })
+  }, [plan, trip.key, original])
+  // 用完「新遊程」標記就清掉,並讓網址對上實際顯示的行程(避免重新整理又被當成新遊程)
+  useEffect(() => {
+    if (freshTrip || trip.key !== urlKey) navigate(tripUrl(trip.key), { replace: true, state: null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const isModified = planSignature(plan) !== planSignature(original)
+  const [confirmReplan, setConfirmReplan] = useState(false)
+  const [confirmRestore, setConfirmRestore] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [selected, setSelected] = useState<Stop | null>(null)
   const [filter, setFilter] = useState<Category | 'all'>('all')
@@ -903,7 +976,7 @@ export default function MapPage() {
             上傳排行榜
           </button>
           <button
-            onClick={() => navigate('/choose')}
+            onClick={() => (isModified ? setConfirmReplan(true) : navigate('/choose'))}
             className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-paper-300 px-3 text-sm font-medium text-ink-700 transition hover:border-brick-400 hover:text-brick-700 sm:px-4"
           >
             <RotateCcw className="h-4 w-4" strokeWidth={2} />
@@ -920,6 +993,7 @@ export default function MapPage() {
             <div className="mt-6">
               <Itinerary plan={plan} ed={ed} />
             </div>
+            {isModified && <TripSaveNote onRestore={() => setConfirmRestore(true)} />}
             {!editMode && <SaveTripButton onSave={saveMyTrip} />}
           </div>
           {editMode && <EditorActions onDone={() => setEditMode(false)} />}
@@ -1023,6 +1097,7 @@ export default function MapPage() {
         onEdit={enterEdit}
         onSave={saveMyTrip}
         onDone={() => setEditMode(false)}
+        saveNote={isModified ? <TripSaveNote onRestore={() => setConfirmRestore(true)} /> : null}
       />
 
       {/* 選景點:加入 / 更換 */}
@@ -1042,6 +1117,57 @@ export default function MapPage() {
           onSave={(mn) => { setStay(stayEdit, mn); setStayEdit(null) }}
           onClose={() => setStayEdit(null)}
         />
+      )}
+
+      {/* 關鍵提醒:行程改過又要重新規劃 */}
+      {confirmReplan && (
+        <EditorModal title="要重新規劃嗎?" onClose={() => setConfirmReplan(false)}>
+          <p className="text-sm leading-relaxed text-ink-700">
+            你改過的行程已自動存在這台裝置,重新整理或離開再回來都還在。
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-700">
+            但選了新路線或讓 AI 重新生成後,這份行程就會被<span className="font-bold text-brick-700">新的遊程取代</span>。
+          </p>
+          <div className="mt-6 flex gap-2.5">
+            <button
+              onClick={() => setConfirmReplan(false)}
+              className="min-h-12 flex-1 rounded-full border border-paper-300 text-sm font-bold text-ink-700 transition hover:bg-paper-100"
+            >
+              留在這裡
+            </button>
+            <button
+              onClick={() => navigate('/choose')}
+              className="min-h-12 flex-1 rounded-full bg-brick-600 text-sm font-bold text-white transition hover:bg-brick-700"
+            >
+              重新規劃
+            </button>
+          </div>
+        </EditorModal>
+      )}
+
+      {/* 恢復成推薦行程 */}
+      {confirmRestore && (
+        <EditorModal title="恢復成推薦行程?" onClose={() => setConfirmRestore(false)}>
+          <p className="text-sm leading-relaxed text-ink-700">你做的修改會全部還原成原本推薦的行程。</p>
+          <div className="mt-6 flex gap-2.5">
+            <button
+              onClick={() => setConfirmRestore(false)}
+              className="min-h-12 flex-1 rounded-full border border-paper-300 text-sm font-bold text-ink-700 transition hover:bg-paper-100"
+            >
+              取消
+            </button>
+            <button
+              onClick={() => {
+                setPlan(original)
+                setConfirmRestore(false)
+                showToast('已恢復成推薦行程')
+              }}
+              className="min-h-12 flex-1 rounded-full bg-brick-600 text-sm font-bold text-white transition hover:bg-brick-700"
+            >
+              確定還原
+            </button>
+          </div>
+        </EditorModal>
       )}
 
       {/* 快速上傳到創意排行榜(不離開地圖,行程不會不見) */}

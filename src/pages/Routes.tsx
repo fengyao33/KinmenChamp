@@ -45,7 +45,7 @@ export default function Routes() {
             return (
               <button
                 key={r.id}
-                onClick={() => navigate(`/map?type=island&route=${r.id}`)}
+                onClick={() => navigate(`/map?type=island&route=${r.id}`, { state: { freshTrip: true } })}
                 className="group flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 ring-ink-900/5 transition hover:shadow-xl sm:w-[68%] md:w-auto md:hover:-translate-y-1"
               >
                 {/* 主題帶 */}

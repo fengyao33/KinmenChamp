@@ -10,7 +10,7 @@ export default function Loading() {
 
   useEffect(() => {
     const timers = STEPS.map((_, i) => setTimeout(() => setStep(i + 1), (i + 1) * 1100))
-    const done = setTimeout(() => navigate('/map?type=ai'), STEPS.length * 1100 + 700)
+    const done = setTimeout(() => navigate('/map?type=ai', { replace: true, state: { freshTrip: true } }), STEPS.length * 1100 + 700)
     return () => {
       timers.forEach(clearTimeout)
       clearTimeout(done)
